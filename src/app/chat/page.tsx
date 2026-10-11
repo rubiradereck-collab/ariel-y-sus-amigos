@@ -137,15 +137,7 @@ export default function ChatPage() {
     let xpGained = 0
     const luck = Math.random()
     
-    if (command.includes('/minar')) {
-      if (luck > 0.9) { response = '¡INCREÍBLE! Has encontrado un DIAMANTE ENORME. (+500 XP)'; xpGained = 500 }
-      else if (luck > 0.5) { response = 'Encontraste algo de hierro y oro. Nada mal. (+100 XP)'; xpGained = 100 }
-      else { response = 'Solo encontraste piedra y tierra... Sigue intentándolo. (+10 XP)'; xpGained = 10 }
-    } else if (command.includes('/pescar')) {
-      if (luck > 0.9) { response = '¡MAMÁ! ¡HAS PESCADO UN TIBURÓN LEGENDARIO! (+500 XP)'; xpGained = 500 }
-      else if (luck > 0.4) { response = 'Atrapaste un salmón decente. Servirá para la cena. (+50 XP)'; xpGained = 50 }
-      else { response = 'Pescaste... ¿una bota vieja? Qué asco. (+5 XP)'; xpGained = 5 }
-    } else if (command.includes('/kiss')) {
+    if (command.includes('/kiss')) {
       response = `ha besado apasionadamente a alguien del chat ❤️`
     } else if (command.includes('/kill')) {
       response = `ha eliminado a alguien del servidor ☠️`
@@ -496,18 +488,23 @@ export default function ChatPage() {
             <div ref={messagesEndRef} />
           </div>
 
-          {/* BOTONES RPG */}
-          <div className="px-6 py-2.5 bg-black/60 border-t border-white/5 flex gap-2 overflow-x-auto hide-scrollbar z-20">
+          {/* BOTONES INTERACCIÓN & ENLACES RPG */}
+          <div className="px-6 py-2.5 bg-black/60 border-t border-white/5 flex gap-2 overflow-x-auto hide-scrollbar z-20 items-center">
             <span className="text-xs font-black text-white uppercase tracking-widest flex items-center mr-2 bg-white/10 px-3 py-1 rounded-md">
-              <Sparkles className="w-3 h-3 mr-1 text-yellow-400" /> RPG:
+              <Sparkles className="w-3 h-3 mr-1 text-yellow-400" /> SOCIAL:
             </span>
             <button onClick={() => handleRPGCommand('/meme', profile?.id, activeChannel?.id)} className="bg-zinc-900 hover:bg-emerald-500/20 text-white border border-white/10 text-xs font-bold px-4 py-1.5 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"><ImageIcon className="w-4 h-4 text-emerald-400"/> Meme</button>
-            <button onClick={() => handleRPGCommand('/minar', profile?.id, activeChannel?.id)} className="bg-zinc-900 hover:bg-orange-500/20 text-white border border-white/10 text-xs font-bold px-4 py-1.5 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"><Pickaxe className="w-4 h-4 text-orange-400"/> Minar</button>
-            <button onClick={() => handleRPGCommand('/pescar', profile?.id, activeChannel?.id)} className="bg-zinc-900 hover:bg-blue-500/20 text-white border border-white/10 text-xs font-bold px-4 py-1.5 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"><Fish className="w-4 h-4 text-blue-400"/> Pescar</button>
             <button onClick={() => handleRPGCommand('/kiss', profile?.id, activeChannel?.id)} className="bg-zinc-900 hover:bg-pink-500/20 text-white border border-white/10 text-xs font-bold px-4 py-1.5 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"><Heart className="w-4 h-4 text-pink-400"/> Kiss</button>
             <button onClick={() => handleRPGCommand('/kill', profile?.id, activeChannel?.id)} className="bg-zinc-900 hover:bg-red-500/20 text-white border border-white/10 text-xs font-bold px-4 py-1.5 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"><Swords className="w-4 h-4 text-red-400"/> Kill</button>
             <button onClick={() => handleRPGCommand('/punch', profile?.id, activeChannel?.id)} className="bg-zinc-900 hover:bg-yellow-500/20 text-white border border-white/10 text-xs font-bold px-4 py-1.5 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"><Hand className="w-4 h-4 text-yellow-400"/> Punch</button>
             <button onClick={() => handleRPGCommand('/ship', profile?.id, activeChannel?.id)} className="bg-zinc-900 hover:bg-purple-500/20 text-white border border-white/10 text-xs font-bold px-4 py-1.5 rounded-lg transition-colors flex items-center gap-2 whitespace-nowrap"><Heart className="w-4 h-4 text-purple-400"/> Ship</button>
+            <div className="h-5 w-[1px] bg-white/10 mx-1 flex-shrink-0" />
+            <Link href="/aventura" className="bg-gradient-to-r from-amber-600/30 to-orange-600/30 hover:from-amber-600/50 hover:to-orange-600/50 text-amber-300 border border-amber-500/30 text-xs font-bold px-4 py-1.5 rounded-lg transition-all flex items-center gap-2 whitespace-nowrap shadow-sm">
+              <Pickaxe className="w-4 h-4 text-amber-400" /> Aventura & Minería
+            </Link>
+            <Link href="/apuestas" className="bg-gradient-to-r from-purple-600/30 to-pink-600/30 hover:from-purple-600/50 hover:to-pink-600/50 text-pink-300 border border-pink-500/30 text-xs font-bold px-4 py-1.5 rounded-lg transition-all flex items-center gap-2 whitespace-nowrap shadow-sm">
+              <Zap className="w-4 h-4 text-pink-400" /> Casino & Apuestas
+            </Link>
           </div>
           
           {/* INPUT AREA Y GRABADORA DE VOZ */}

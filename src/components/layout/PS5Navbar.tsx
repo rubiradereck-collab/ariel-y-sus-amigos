@@ -2,7 +2,7 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, MessageSquare, Users, Image as ImageIcon, Search, Bell, Menu, Gamepad2, Activity, Music, Palette, Send, ShoppingCart, Tv, Settings, KeyRound, LogOut, ChevronDown } from "lucide-react"
+import { Home, MessageSquare, Users, Image as ImageIcon, Search, Bell, Menu, Gamepad2, Activity, Music, Palette, Send, ShoppingCart, Tv, Settings, KeyRound, LogOut, ChevronDown, Pickaxe, Coins } from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect } from "react"
 import { createClient } from "@/lib/supabase/client"
@@ -10,15 +10,17 @@ import { toast } from "sonner"
 
 const navItems = [
   { name: 'INICIO', path: '/', icon: Home },
-  { name: 'MURO', path: '/muro', icon: MessageSquare },
+  { name: 'AVENTURA', path: '/aventura', icon: Pickaxe },
+  { name: 'APUESTAS', path: '/apuestas', icon: Coins },
   { name: 'CHAT', path: '/chat', icon: MessageSquare },
+  { name: 'MURO', path: '/muro', icon: MessageSquare },
   { name: 'PERFILES', path: '/profiles', icon: Users },
   { name: 'GALERIA', path: '/memes', icon: ImageIcon },
-  { name: 'DASHBOARD', path: '/stats', icon: Activity },
   { name: 'ARCADE', path: '/arcade', icon: Gamepad2 },
-  { name: 'MUSICA', path: '/musica', icon: Music },
   { name: 'TIENDA', path: '/tienda', icon: ShoppingCart },
   { name: 'CINE', path: '/watchparty', icon: Tv },
+  { name: 'MUSICA', path: '/musica', icon: Music },
+  { name: 'DASHBOARD', path: '/stats', icon: Activity },
 ]
 
 const themes = [
