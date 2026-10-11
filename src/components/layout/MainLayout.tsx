@@ -173,14 +173,15 @@ export function MainLayout({ children }: { children: ReactNode }) {
         </AnimatePresence>
 
         
-        {/* Fondo Principal de Ariel Hero */}
-        <div 
-          className="fixed inset-0 z-0 bg-cover bg-right md:bg-center pointer-events-none transition-all duration-1000"
-          style={{ backgroundImage: 'url("/images/ariel-hero.png")' }}
-        >
-          {/* Gradiente que permite ver el fondo claramente en el Inicio y oscurece en otras páginas */}
-          <div className={`absolute inset-0 transition-all duration-1000 ${isHome ? 'bg-gradient-to-r from-black/80 via-black/30 to-transparent' : 'bg-black/85'}`} />
-        </div>
+        {/* Fondo Principal de Ariel Hero (en páginas internas; en Home se usa el dinámico PS5) */}
+        {!isHome && (
+          <div 
+            className="fixed inset-0 z-0 bg-cover bg-right md:bg-center pointer-events-none transition-all duration-1000"
+            style={{ backgroundImage: 'url("/images/ariel-hero.png")' }}
+          >
+            <div className="absolute inset-0 bg-black/85" />
+          </div>
+        )}
 
         <div className={`fixed inset-0 z-0 pointer-events-none overflow-hidden ${isHome ? 'hidden' : 'block'}`}>
           <motion.div 

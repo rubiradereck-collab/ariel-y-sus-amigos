@@ -40,5 +40,9 @@ yarn-error.log*
 *.tsbuildinfo
 next-env.d.ts
 
+# raw archives and unplaced dumps
+files/
+*.zip
+
 discord-bot/node_modules
 
