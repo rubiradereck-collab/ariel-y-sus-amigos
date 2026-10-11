@@ -15,6 +15,14 @@ const jetbrainsMono = JetBrains_Mono({
 export const metadata: Metadata = {
   title: "Ariel y sus amigos (y Joel)",
   description: "La comunidad privada, exclusiva y caótica.",
+  icons: {
+    icon: [
+      { url: "/icon.png", sizes: "128x128", type: "image/png" },
+      { url: "/favicon.ico" }
+    ],
+    shortcut: "/favicon.ico",
+    apple: "/apple-icon.png",
+  },
 };
 
 export default function RootLayout({
