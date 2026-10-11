@@ -163,18 +163,27 @@ export default function ChatPage() {
       response = `ha invocado un meme: [img]${randomMeme}[/img]`
     }
 
-    if (response) {
-      await supabase.from('messages').insert([{
-        channel_id: channelId,
-        sender_id: userId,
-        content: `[SISTEMA RPG] ${profile?.nickname || 'Alguien'} ${response}`
-      }])
-    }
+    // Intento 1: Ejecutar vía RPC en servidor (seguro contra manipulación)
+    const { data: rpcResult, error: rpcError } = await supabase.rpc('execute_rpg_action', {
+      p_command: command,
+      p_channel_id: channelId
+    });
 
-    if (xpGained > 0) {
-      const { data: p } = await supabase.from('profiles').select('xp').eq('id', userId).single()
-      if (p) {
-        await supabase.from('profiles').update({ xp: (p.xp || 0) + xpGained }).eq('id', userId)
+    if (rpcError) {
+      // Fallback si la migración de RPC aún no se ha ejecutado en Supabase
+      if (response) {
+        await supabase.from('messages').insert([{
+          channel_id: channelId,
+          sender_id: userId,
+          content: `[SISTEMA RPG] ${profile?.nickname || 'Alguien'} ${response}`
+        }])
+      }
+
+      if (xpGained > 0) {
+        const { data: p } = await supabase.from('profiles').select('xp').eq('id', userId).single()
+        if (p) {
+          await supabase.from('profiles').update({ xp: (p.xp || 0) + xpGained }).eq('id', userId)
+        }
       }
     }
   }
@@ -220,11 +229,28 @@ export default function ChatPage() {
     }
   }
 
-  // MÓDULO DE AUDIOS REALES
+  // MÓDULO DE AUDIOS REALES (Compatible con PC, Android y iPhone/Safari)
+  const [selectedMimeType, setSelectedMimeType] = useState('audio/webm')
+
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true })
-      const mediaRecorder = new MediaRecorder(stream)
+      
+      // Detección de formato compatible para iOS/Safari
+      let mimeType = 'audio/webm'
+      if (typeof MediaRecorder !== 'undefined') {
+        if (MediaRecorder.isTypeSupported('audio/webm')) {
+          mimeType = 'audio/webm'
+        } else if (MediaRecorder.isTypeSupported('audio/mp4')) {
+          mimeType = 'audio/mp4'
+        } else if (MediaRecorder.isTypeSupported('audio/ogg')) {
+          mimeType = 'audio/ogg'
+        }
+      }
+      setSelectedMimeType(mimeType)
+
+      const options = mimeType ? { mimeType } : undefined
+      const mediaRecorder = new MediaRecorder(stream, options)
       mediaRecorderRef.current = mediaRecorder
       audioChunksRef.current = []
 
@@ -254,11 +280,12 @@ export default function ChatPage() {
     setUploadingAudio(true)
 
     mediaRecorderRef.current.onstop = async () => {
-      const audioBlob = new Blob(audioChunksRef.current, { type: 'audio/webm' })
-      const filename = `voice_${Date.now()}_${profile.id.slice(0, 5)}.webm`
+      const extension = selectedMimeType.includes('mp4') ? 'mp4' : selectedMimeType.includes('ogg') ? 'ogg' : 'webm'
+      const audioBlob = new Blob(audioChunksRef.current, { type: selectedMimeType })
+      const filename = `voice_${Date.now()}_${profile.id.slice(0, 5)}.${extension}`
 
       // Subir archivo al bucket de Supabase
-      const { data, error } = await supabase.storage.from('musica').upload(filename, audioBlob)
+      const { data, error } = await supabase.storage.from('musica').upload(filename, audioBlob, { contentType: selectedMimeType })
 
       if (error) {
         toast.error('Error al subir audio: ' + error.message)
