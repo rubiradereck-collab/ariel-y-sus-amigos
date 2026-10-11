@@ -2,9 +2,13 @@
 
 import Link from "next/link"
 import { usePathname, useRouter } from "next/navigation"
-import { Home, MessageSquare, Users, Image as ImageIcon, Search, Bell, Menu, Gamepad2, Activity, Music, Palette, Send, ShoppingCart, Tv, Settings, KeyRound, LogOut, ChevronDown, Pickaxe, Coins } from "lucide-react"
+import { 
+  Home, MessageSquare, Users, Image as ImageIcon, Search, Bell, Menu, 
+  Gamepad2, Activity, Music, Palette, Send, ShoppingCart, Tv, Settings, 
+  KeyRound, LogOut, ChevronDown, ChevronLeft, ChevronRight, Pickaxe, Coins 
+} from "lucide-react"
 import { motion, AnimatePresence } from "framer-motion"
-import { useState, useEffect } from "react"
+import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
 
@@ -39,6 +43,49 @@ export function PS5Navbar({ currentTheme = 'cyan' }: { currentTheme?: string }) 
   const supabase = createClient()
   const router = useRouter()
   const [showUserMenu, setShowUserMenu] = useState(false)
+
+  const navScrollRef = useRef<HTMLDivElement>(null)
+  const [canScrollLeft, setCanScrollLeft] = useState(false)
+  const [canScrollRight, setCanScrollRight] = useState(true)
+
+  const checkScroll = () => {
+    if (navScrollRef.current) {
+      const { scrollLeft, scrollWidth, clientWidth } = navScrollRef.current
+      setCanScrollLeft(scrollLeft > 10)
+      setCanScrollRight(scrollLeft < scrollWidth - clientWidth - 10)
+    }
+  }
+
+  const scrollNav = (direction: 'left' | 'right') => {
+    if (navScrollRef.current) {
+      navScrollRef.current.scrollBy({
+        left: direction === 'left' ? -220 : 220,
+        behavior: 'smooth'
+      })
+    }
+  }
+
+  useEffect(() => {
+    checkScroll()
+    const el = navScrollRef.current
+    if (el) {
+      el.addEventListener('scroll', checkScroll)
+      window.addEventListener('resize', checkScroll)
+      return () => {
+        el.removeEventListener('scroll', checkScroll)
+        window.removeEventListener('resize', checkScroll)
+      }
+    }
+  }, [])
+
+  useEffect(() => {
+    if (navScrollRef.current) {
+      const activeEl = navScrollRef.current.querySelector('[data-active="true"]') as HTMLElement
+      if (activeEl) {
+        activeEl.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' })
+      }
+    }
+  }, [pathname])
 
   const handleLogout = async () => {
     await supabase.auth.signOut()
@@ -80,34 +127,66 @@ export function PS5Navbar({ currentTheme = 'cyan' }: { currentTheme?: string }) 
   }
 
   return (
-    <nav className="fixed top-0 w-full z-50 bg-gradient-to-b from-black/90 via-black/50 to-transparent backdrop-blur-[2px]">
-      <div className="max-w-[1800px] mx-auto px-6 h-24 flex items-center justify-between gap-8 relative">
+    <nav className="fixed top-0 w-full z-50 bg-gradient-to-b from-black/95 via-black/70 to-transparent backdrop-blur-[2px]">
+      <div className="max-w-[1800px] mx-auto px-4 md:px-6 h-20 flex items-center justify-between gap-3 md:gap-6 relative">
         
-        {/* Left: Navigation Links */}
-        <div className="flex-1 flex items-center gap-6 overflow-x-auto hide-scrollbar pr-12 mask-fade-right">
-          {navItems.map((item) => {
-            const isActive = pathname === item.path
-            return (
-              <Link 
-                key={item.path} 
-                href={item.path}
-                className="relative group flex items-center gap-2 whitespace-nowrap py-2"
-              >
-                <item.icon className={`w-4 h-4 transition-colors ${isActive ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`} />
-                <span className={`text-[13px] font-black tracking-[0.2em] transition-all duration-300 ${
-                  isActive ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'text-zinc-500 group-hover:text-zinc-300'
-                }`}>
-                  {item.name}
-                </span>
-                {isActive && (
-                  <motion.div 
-                    layoutId="activeNav"
-                    className="absolute -bottom-2 left-0 right-0 h-1 bg-white shadow-[0_0_15px_rgba(255,255,255,1)]"
-                  />
-                )}
-              </Link>
-            )
-          })}
+        {/* Left: Navigation Links with Scroll & Controls */}
+        <div className="flex-1 relative flex items-center min-w-0 pr-2">
+          
+          {/* Flecha izquierda si hay scroll */}
+          {canScrollLeft && (
+            <button
+              onClick={() => scrollNav('left')}
+              className="flex-shrink-0 z-20 w-7 h-7 rounded-full bg-black/90 hover:bg-white text-white hover:text-black border border-white/20 flex items-center justify-center transition-all cursor-pointer mr-1.5 shadow-[0_0_12px_rgba(255,255,255,0.4)]"
+              title="Secciones anteriores"
+              aria-label="Anterior"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </button>
+          )}
+
+          {/* Contenedor scrolleable */}
+          <div 
+            ref={navScrollRef}
+            className="flex-1 flex items-center gap-3.5 md:gap-5 overflow-x-auto hide-scrollbar scroll-smooth py-2"
+          >
+            {navItems.map((item) => {
+              const isActive = pathname === item.path
+              return (
+                <Link 
+                  key={item.path} 
+                  href={item.path}
+                  data-active={isActive ? "true" : undefined}
+                  className="relative group flex items-center gap-1.5 md:gap-2 whitespace-nowrap py-1.5 px-1"
+                >
+                  <item.icon className={`w-3.5 h-3.5 md:w-4 md:h-4 transition-colors ${isActive ? 'text-white' : 'text-zinc-500 group-hover:text-white'}`} />
+                  <span className={`text-[11px] md:text-[12px] lg:text-[13px] font-black tracking-[0.18em] transition-all duration-300 ${
+                    isActive ? 'text-white drop-shadow-[0_0_10px_rgba(255,255,255,0.8)]' : 'text-zinc-500 group-hover:text-zinc-300'
+                  }`}>
+                    {item.name}
+                  </span>
+                  {isActive && (
+                    <motion.div 
+                      layoutId="activeNav"
+                      className="absolute -bottom-1.5 left-0 right-0 h-0.5 md:h-1 bg-white shadow-[0_0_15px_rgba(255,255,255,1)]"
+                    />
+                  )}
+                </Link>
+              )
+            })}
+          </div>
+
+          {/* Flecha derecha si hay más secciones ocultas */}
+          {canScrollRight && (
+            <button
+              onClick={() => scrollNav('right')}
+              className="flex-shrink-0 z-20 w-7 h-7 rounded-full bg-black/90 hover:bg-white text-white hover:text-black border border-white/20 flex items-center justify-center transition-all cursor-pointer ml-1.5 shadow-[0_0_12px_rgba(255,255,255,0.4)] animate-pulse"
+              title="Ver más secciones"
+              aria-label="Siguiente"
+            >
+              <ChevronRight className="w-4 h-4" />
+            </button>
+          )}
         </div>
 
         {/* Right: Actions & Profile */}

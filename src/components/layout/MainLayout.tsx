@@ -148,7 +148,7 @@ export function MainLayout({ children }: { children: ReactNode }) {
         )}
       </AnimatePresence>
 
-      <div className={`flex min-h-screen relative overflow-hidden bg-black text-white font-sans selection:bg-white/30 ${isHome ? '' : 'bg-gradient-to-br ' + themeGradients[globalTheme]} transition-colors duration-1000`}>
+      <div className={`flex min-h-screen relative overflow-x-hidden ${isHome ? 'overflow-y-auto' : 'overflow-hidden'} bg-black text-white font-sans selection:bg-white/30 ${isHome ? '' : 'bg-gradient-to-br ' + themeGradients[globalTheme]} transition-colors duration-1000`}>
         
         <AnimatePresence>
           {loading && (
@@ -198,7 +198,7 @@ export function MainLayout({ children }: { children: ReactNode }) {
 
         <PS5Navbar currentTheme={globalTheme} />
         
-        <main className="flex-1 w-full relative z-10 pt-24 pb-20">
+        <main className={`flex-1 w-full relative z-10 ${isHome ? 'pt-20 pb-4' : 'pt-24 pb-20'}`}>
           {children}
         </main>
 
