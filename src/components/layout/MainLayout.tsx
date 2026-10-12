@@ -9,6 +9,7 @@ import { Gamepad2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
 import { usePathname, useRouter } from "next/navigation"
 import { useWallUnread } from "@/hooks/useWallUnread"
+import { useTrophyToasts } from "@/hooks/useTrophyToasts"
 
 export function MainLayout({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false)
@@ -18,6 +19,9 @@ export function MainLayout({ children }: { children: ReactNode }) {
   const router = useRouter()
 
   const supabase = createClient()
+
+  // Escuchar y disparar notificaciones de trofeos PS5
+  useTrophyToasts()
 
   useEffect(() => {
     useWallUnread.getState().init()

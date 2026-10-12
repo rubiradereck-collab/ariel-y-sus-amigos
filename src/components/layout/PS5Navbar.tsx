@@ -123,6 +123,7 @@ export function PS5Navbar({ currentTheme = 'cyan' }: { currentTheme?: string }) 
       event: 'lfg',
       payload: { user: profile.nickname, game, message: '¡Únanse al canal de voz!' }
     })
+    await supabase.removeChannel(channel)
     
     toast.success(`Notificación enviada a todos para jugar ${game}`)
     setShowLFGMenu(false)

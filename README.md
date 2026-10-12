@@ -4,7 +4,7 @@ Bienvenido al caos. Esta es la plataforma oficial y exclusiva para Dereck, Ariel
 
 ## 🛠 Arquitectura
 
-- **Frontend/Backend:** Next.js 15 (App Router), TypeScript, Tailwind CSS v4.
+- **Frontend/Backend:** Next.js 16 (App Router, Turbopack, React 19), TypeScript, Tailwind CSS v4.
 - **Base de Datos & Auth:** Supabase (PostgreSQL, Auth, Storage).
 - **Iconos & Animaciones:** Lucide React, Framer Motion.
 - **Bots:** Node.js (Discord.js).
