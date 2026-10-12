@@ -1,0 +1,146 @@
+export type GameCategory = 'slots' | 'crash' | 'mesa' | 'instantaneo'
+
+export interface GameDef {
+  slug: string
+  title: string
+  category: GameCategory
+  cover: string // /games/<slug>.webp (16:10, 640x400)
+  route: string
+  badge?: 'NUEVO' | 'HOT' | 'x1000'
+  minBet: number
+  maxBet: number
+  emoji: string
+  desc: string
+  accentColor: string
+}
+
+export const CASINO_GAMES: GameDef[] = [
+  {
+    slug: 'blackjack',
+    title: 'Blackjack 21',
+    category: 'mesa',
+    cover: '/games/blackjack.webp',
+    route: '/apuestas/blackjack',
+    badge: 'HOT',
+    minBet: 10,
+    maxBet: 5000,
+    emoji: '🃏',
+    desc: 'Llega a 21 y vence a la banca en la mesa clásica.',
+    accentColor: '#10b981',
+  },
+  {
+    slug: 'ruleta_europea',
+    title: 'Ruleta Europea',
+    category: 'mesa',
+    cover: '/games/ruleta.webp',
+    route: '/apuestas/ruleta',
+    badge: 'HOT',
+    minBet: 10,
+    maxBet: 10000,
+    emoji: '🎡',
+    desc: '37 casillas, apuestas a pleno con x36 y docenas.',
+    accentColor: '#ef4444',
+  },
+  {
+    slug: 'tragaperras_bonanza',
+    title: 'Tragaperras Bonanza',
+    category: 'slots',
+    cover: '/games/tragaperras.webp',
+    route: '/apuestas/tragaperras',
+    badge: 'HOT',
+    minBet: 5,
+    maxBet: 2000,
+    emoji: '🎰',
+    desc: '3 rodillos con multiplicadores de hasta x250.',
+    accentColor: '#f59e0b',
+  },
+  {
+    slug: 'crash',
+    title: 'Crash Cohete',
+    category: 'crash',
+    cover: '/games/crash.webp',
+    route: '/apuestas?game=crash',
+    badge: 'x1000',
+    minBet: 10,
+    maxBet: 5000,
+    emoji: '🚀',
+    desc: 'El multiplicador sube por los cielos. ¡Cobra antes de que explote!',
+    accentColor: '#ec4899',
+  },
+  {
+    slug: 'plinko',
+    title: 'Plinko Clásico',
+    category: 'instantaneo',
+    cover: '/games/plinko.webp',
+    route: '/apuestas?game=plinko',
+    badge: 'HOT',
+    minBet: 10,
+    maxBet: 2000,
+    emoji: '📍',
+    desc: 'Deja caer las esferas entre los pines hacia los botes laterales.',
+    accentColor: '#8b5cf6',
+  },
+  {
+    slug: 'mines',
+    title: 'Minas Clandestinas',
+    category: 'instantaneo',
+    cover: '/games/mines.webp',
+    route: '/apuestas?game=mines',
+    badge: 'NUEVO',
+    minBet: 10,
+    maxBet: 5000,
+    emoji: '💣',
+    desc: 'Tablero 5×5: esquiva los explosivos y retira tu botín cuando quieras.',
+    accentColor: '#06b6d4',
+  },
+  {
+    slug: 'dice',
+    title: 'Dice (Dados 1-100)',
+    category: 'instantaneo',
+    cover: '/games/dice.webp',
+    route: '/apuestas?game=dice',
+    badge: 'NUEVO',
+    minBet: 5,
+    maxBet: 5000,
+    emoji: '🎲',
+    desc: 'Ajusta tu umbral de probabilidad y gana con multiplicador dinámico.',
+    accentColor: '#3b82f6',
+  },
+  {
+    slug: 'coinflip',
+    title: 'Cara o Cruz',
+    category: 'instantaneo',
+    cover: '/games/coinflip.webp',
+    route: '/apuestas?game=coin',
+    minBet: 10,
+    maxBet: 2000,
+    emoji: '🪙',
+    desc: 'Doble o nada al aire con física de moneda giratoria.',
+    accentColor: '#eab308',
+  },
+  {
+    slug: 'duels',
+    title: 'Duelos de Honor (PvP)',
+    category: 'mesa',
+    cover: '/games/duels.webp',
+    route: '/apuestas?game=duels',
+    minBet: 20,
+    maxBet: 10000,
+    emoji: '⚔️',
+    desc: 'Desafía a cualquier amigo conectado a un duelo de monedas 1v1.',
+    accentColor: '#a855f7',
+  },
+  {
+    slug: 'wheel_fortune',
+    title: 'Ruleta de la Suerte',
+    category: 'instantaneo',
+    cover: '/games/wheel.webp',
+    route: '/apuestas?rewards=open',
+    badge: 'NUEVO',
+    minBet: 0,
+    maxBet: 0,
+    emoji: '👑',
+    desc: 'Tiro gratis cada 20 horas con botes de hasta 500 🪙 e ítems RPG.',
+    accentColor: '#d4af37',
+  },
+]
