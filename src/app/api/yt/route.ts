@@ -96,8 +96,104 @@ function scoreResult(
   return s
 }
 
-// Fallback público de búsqueda sin API Key (scrape zero-key de YouTube)
-async function searchYouTubeZeroKey(query: string): Promise<{
+// 1. YouTube InnerTube API (JSON nativo, sin API key, no se bloquea en Vercel)
+async function searchYouTubeInnerTube(query: string): Promise<{
+  videoId: string
+  title: string
+  channel: string
+  thumb: string | null
+  durationSec: number
+}[]> {
+  try {
+    const res = await fetch('https://www.youtube.com/youtubei/v1/search?prettyPrint=false', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+      },
+      body: JSON.stringify({
+        context: {
+          client: {
+            clientName: 'WEB',
+            clientVersion: '2.20231201.00.00',
+            hl: 'es',
+            gl: 'US',
+          },
+        },
+        query,
+      }),
+      cache: 'no-store',
+    })
+    if (!res.ok) return []
+    const data = await res.json()
+    const sectionList =
+      data?.contents?.twoColumnSearchResultsRenderer?.primaryContents?.sectionListRenderer?.contents || []
+
+    const results: {
+      videoId: string
+      title: string
+      channel: string
+      thumb: string | null
+      durationSec: number
+    }[] = []
+
+    for (const sec of sectionList) {
+      const items = sec?.itemSectionRenderer?.contents || []
+      for (const it of items) {
+        if (it?.videoRenderer) {
+          const vr = it.videoRenderer
+          if (!vr.videoId) continue
+          const videoId = vr.videoId
+          const title = vr.title?.runs?.map((r: any) => r.text).join('') || vr.title?.simpleText || ''
+          const channel =
+            vr.ownerText?.runs?.map((r: any) => r.text).join('') ||
+            vr.shortBylineText?.runs?.map((r: any) => r.text).join('') ||
+            ''
+          const thumb =
+            vr.thumbnail?.thumbnails?.[vr.thumbnail.thumbnails.length - 1]?.url ||
+            `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`
+          const lengthText =
+            vr.lengthText?.simpleText || vr.lengthText?.runs?.map((r: any) => r.text).join('') || ''
+          results.push({
+            videoId,
+            title: decodeEntities(title),
+            channel: decodeEntities(channel),
+            thumb,
+            durationSec: parseDurationText(lengthText),
+          })
+        } else if (it?.lockupViewModel) {
+          const lvm = it.lockupViewModel
+          const videoId = lvm.contentId
+          if (!videoId) continue
+          const title = lvm.metadata?.lockupMetadataViewModel?.title?.content || ''
+          const channel =
+            lvm.metadata?.lockupMetadataViewModel?.metadata?.contentMetadataViewModel?.metadataRows?.[0]
+              ?.metadataParts?.[0]?.text?.content || ''
+          const thumb =
+            lvm.contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url ||
+            `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`
+          results.push({
+            videoId,
+            title: decodeEntities(title),
+            channel: decodeEntities(channel),
+            thumb,
+            durationSec: 0,
+          })
+        }
+        if (results.length >= 8) break
+      }
+      if (results.length >= 8) break
+    }
+    return results
+  } catch (e) {
+    console.error('InnerTube search error:', e)
+    return []
+  }
+}
+
+// 2. Fallback de HTML de búsqueda
+async function searchYouTubeHtmlScrape(query: string): Promise<{
   videoId: string
   title: string
   channel: string
@@ -159,41 +255,20 @@ async function searchYouTubeZeroKey(query: string): Promise<{
             thumb,
             durationSec: parseDurationText(lengthText),
           })
-        } else if (item?.lockupViewModel) {
-          const lvm = item.lockupViewModel
-          const videoId = lvm.contentId
-          if (!videoId) continue
-          const title = lvm.metadata?.lockupMetadataViewModel?.title?.content || ''
-          const channel =
-            lvm.metadata?.lockupMetadataViewModel?.metadata?.contentMetadataViewModel?.metadataRows?.[0]
-              ?.metadataParts?.[0]?.text?.content || ''
-          const thumb =
-            lvm.contentImage?.thumbnailViewModel?.image?.sources?.[0]?.url ||
-            `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`
-
-          results.push({
-            videoId,
-            title: decodeEntities(title),
-            channel: decodeEntities(channel),
-            thumb,
-            durationSec: 0,
-          })
         }
-
         if (results.length >= 8) break
       }
       if (results.length >= 8) break
     }
 
     return results
-  } catch (err) {
-    console.error('Zero-key search failed:', err)
+  } catch {
     return []
   }
 }
 
-// Fallback público de playlists sin API Key
-async function scrapeYouTubePlaylistZeroKey(playlistId: string, maxItems: number = 100): Promise<{
+// 3. Fallback de Playlist con InnerTube Browse
+async function browseYouTubePlaylistInnerTube(playlistId: string, maxItems: number = 100): Promise<{
   title: string
   total: number
   truncated: boolean
@@ -206,29 +281,37 @@ async function scrapeYouTubePlaylistZeroKey(playlistId: string, maxItems: number
   }[]
 } | null> {
   try {
-    const url = `https://www.youtube.com/playlist?list=${encodeURIComponent(playlistId)}`
-    const res = await fetch(url, {
+    const browseId = playlistId.startsWith('VL') ? playlistId : 'VL' + playlistId
+    const res = await fetch('https://www.youtube.com/youtubei/v1/browse?prettyPrint=false', {
+      method: 'POST',
       headers: {
+        'Content-Type': 'application/json',
         'User-Agent':
           'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept-Language': 'es-419,es;q=0.9,en;q=0.8',
       },
+      body: JSON.stringify({
+        context: {
+          client: {
+            clientName: 'WEB',
+            clientVersion: '2.20231201.00.00',
+            hl: 'es',
+            gl: 'US',
+          },
+        },
+        browseId,
+      }),
       cache: 'no-store',
     })
     if (!res.ok) return null
-    const html = await res.text()
-    const match = html.match(/var ytInitialData\s*=\s*({.+?});<\/script>/)
-    if (!match) return null
-
-    const data = JSON.parse(match[1])
+    const data = await res.json()
     const plTitle =
       data?.metadata?.playlistMetadataRenderer?.title ||
       data?.header?.playlistHeaderRenderer?.title?.simpleText ||
       'Playlist de YouTube'
 
-    const sec = data?.contents?.twoColumnBrowseResultsRenderer?.tabs?.[0]?.tabRenderer?.content?.sectionListRenderer
-    const itemSec = sec?.contents?.[0]?.itemSectionRenderer
-    const rawList = itemSec?.contents || []
+    const tabs = data?.contents?.twoColumnBrowseResultsRenderer?.tabs || []
+    const sec = tabs[0]?.tabRenderer?.content?.sectionListRenderer?.contents || []
+    const rawList = sec[0]?.itemSectionRenderer?.contents || []
 
     const items: {
       videoId: string
@@ -278,20 +361,21 @@ async function scrapeYouTubePlaylistZeroKey(playlistId: string, maxItems: number
       if (items.length >= maxItems) break
     }
 
+    if (items.length === 0) return null
+
     return {
       title: plTitle,
       total: items.length,
       truncated: false,
       items,
     }
-  } catch (err) {
-    console.error('Zero-key playlist scrape failed:', err)
+  } catch (e) {
+    console.error('InnerTube playlist error:', e)
     return null
   }
 }
 
 export async function GET(req: Request) {
-  // Nota: Verificación de sesión no bloquea búsquedas públicas
   try {
     const cookieStore = await cookies()
     const supabase = createServerClient(
@@ -306,7 +390,7 @@ export async function GET(req: Request) {
     )
     await supabase.auth.getUser()
   } catch {
-    // Si falla el cookieStore en background, continuar de manera segura
+    // Sesión no bloquea endpoints públicos de música
   }
 
   const { searchParams } = new URL(req.url)
@@ -354,8 +438,7 @@ export async function GET(req: Request) {
     const maxItems = Math.min(100, parseInt(searchParams.get('max') || '100', 10))
 
     if (!key) {
-      // Usar scraper zero-key
-      const plData = await scrapeYouTubePlaylistZeroKey(playlistId, maxItems)
+      const plData = await browseYouTubePlaylistInnerTube(playlistId, maxItems)
       if (plData && plData.items.length > 0) {
         return NextResponse.json(plData)
       }
@@ -363,14 +446,12 @@ export async function GET(req: Request) {
     }
 
     try {
-      // Info de la playlist con API Key
       const plRes = await fetch(
         `https://www.googleapis.com/youtube/v3/playlists?part=snippet,contentDetails&id=${playlistId}&key=${key}`,
         { cache: 'no-store' }
       )
       if (!plRes.ok) {
-        // Fallback a scraper si la key falló
-        const fallback = await scrapeYouTubePlaylistZeroKey(playlistId, maxItems)
+        const fallback = await browseYouTubePlaylistInnerTube(playlistId, maxItems)
         if (fallback) return NextResponse.json(fallback)
         return NextResponse.json({ error: 'upstream_error' }, { status: 502 })
       }
@@ -381,7 +462,6 @@ export async function GET(req: Request) {
       const plTitle = plData.items[0].snippet?.title || 'Playlist de YouTube'
       const totalCount = plData.items[0].contentDetails?.itemCount || 0
 
-      // Pistas de la playlist
       const rawItems: { videoId: string; title: string; channel: string; thumb: string | null }[] = []
       let pageToken: string | undefined = undefined
 
@@ -411,7 +491,6 @@ export async function GET(req: Request) {
         if (!pageToken || entries.length === 0) break
       }
 
-      // Obtener duraciones y verificar embeddable en lotes de 50
       const finalItems: { videoId: string; title: string; channel: string; thumb: string | null; durationSec: number }[] = []
       for (let i = 0; i < rawItems.length; i += 50) {
         const chunk = rawItems.slice(i, i + 50)
@@ -443,7 +522,7 @@ export async function GET(req: Request) {
         items: finalItems,
       })
     } catch {
-      const fallback = await scrapeYouTubePlaylistZeroKey(playlistId, maxItems)
+      const fallback = await browseYouTubePlaylistInnerTube(playlistId, maxItems)
       if (fallback) return NextResponse.json(fallback)
       return NextResponse.json({ error: 'upstream_error' }, { status: 502 })
     }
@@ -454,15 +533,18 @@ export async function GET(req: Request) {
     const cleanQ = q.trim().slice(0, 100)
     const key = process.env.YOUTUBE_API_KEY
 
-    // Si no hay key, usar scraper zero-key directamente
+    // Si no hay key, usar InnerTube con fallback a HTML scrape
     if (!key) {
-      const zeroResults = await searchYouTubeZeroKey(cleanQ)
-      zeroResults.sort((a, b) => {
-        const idxA = zeroResults.indexOf(a)
-        const idxB = zeroResults.indexOf(b)
+      let results = await searchYouTubeInnerTube(cleanQ)
+      if (results.length === 0) {
+        results = await searchYouTubeHtmlScrape(cleanQ)
+      }
+      results.sort((a, b) => {
+        const idxA = results.indexOf(a)
+        const idxB = results.indexOf(b)
         return scoreResult(b, cleanQ, idxB) - scoreResult(a, cleanQ, idxA)
       })
-      return NextResponse.json({ results: zeroResults })
+      return NextResponse.json({ results })
     }
 
     try {
@@ -495,12 +577,11 @@ export async function GET(req: Request) {
         }))
 
       if (rawResults.length === 0) {
-        // Fallback a scraper zero-key
-        const zeroResults = await searchYouTubeZeroKey(cleanQ)
-        return NextResponse.json({ results: zeroResults })
+        let fallbackResults = await searchYouTubeInnerTube(cleanQ)
+        if (fallbackResults.length === 0) fallbackResults = await searchYouTubeHtmlScrape(cleanQ)
+        return NextResponse.json({ results: fallbackResults })
       }
 
-      // Detalle de videos
       const ids = rawResults.map((r) => r.videoId).join(',')
       const detailsRes = await fetch(
         `https://www.googleapis.com/youtube/v3/videos?part=contentDetails,status&id=${ids}&key=${key}`,
@@ -528,9 +609,9 @@ export async function GET(req: Request) {
 
       return NextResponse.json({ results: rawResults })
     } catch {
-      // Fallback a scraper zero-key en caso de error upstream con Google
-      const zeroResults = await searchYouTubeZeroKey(cleanQ)
-      return NextResponse.json({ results: zeroResults })
+      let fallbackResults = await searchYouTubeInnerTube(cleanQ)
+      if (fallbackResults.length === 0) fallbackResults = await searchYouTubeHtmlScrape(cleanQ)
+      return NextResponse.json({ results: fallbackResults })
     }
   }
 
