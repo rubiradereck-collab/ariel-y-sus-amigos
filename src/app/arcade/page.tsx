@@ -51,26 +51,26 @@ const games = [
     disabled: false
   },
   {
-    id: 'buscaminas',
-    title: 'Buscaminas Extremo',
-    description: 'Desactiva las bombas antes de que explote el servidor.',
-    icon: <Bomb className="w-8 h-8 text-zinc-500" />,
-    image: 'https://images.unsplash.com/photo-1589241062272-c0a000072dfa?q=80&w=2070&auto=format&fit=crop', // Bomb / timer
-    color: 'from-zinc-600/80 to-black',
-    href: '#',
-    players: 'Solo Puzzle',
-    disabled: true
+    id: 'snake',
+    title: 'La Culebrita (Snake)',
+    description: 'Come manzanas, esquiva tu cola y bate el récord del grupo para ganar monedas y XP.',
+    icon: <Gamepad2 className="w-8 h-8 text-emerald-400 drop-shadow-[0_0_10px_rgba(52,211,153,0.8)]" />,
+    image: 'https://images.unsplash.com/photo-1628277613967-6abca504d0ac?q=80&w=2070&auto=format&fit=crop',
+    color: 'from-emerald-600/80 to-black',
+    href: '/arcade/snake',
+    players: 'Solo Arcade',
+    disabled: false
   },
   {
-    id: 'pvp',
-    title: 'Torneo 1v1',
-    description: 'Reta a otro miembro a un duelo directo con apuestas de XP.',
-    icon: <Swords className="w-8 h-8 text-zinc-500" />,
-    image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?q=80&w=2070&auto=format&fit=crop', // Esport setup
-    color: 'from-zinc-600/80 to-black',
-    href: '#',
-    players: 'Multijugador',
-    disabled: true
+    id: 'tictactoe',
+    title: 'Tres en Raya (1v1 & CPU)',
+    description: 'Enfrenta a la IA o crea una sala en tiempo real para retar a un amigo.',
+    icon: <Swords className="w-8 h-8 text-cyan-400 drop-shadow-[0_0_10px_rgba(34,211,238,0.8)]" />,
+    image: 'https://images.unsplash.com/photo-1668901382969-8c73e450a1f5?q=80&w=2070&auto=format&fit=crop',
+    color: 'from-cyan-600/80 to-black',
+    href: '/arcade/tictactoe',
+    players: '1v1 / vs Bot',
+    disabled: false
   }
 ]
 

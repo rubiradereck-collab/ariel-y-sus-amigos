@@ -12,30 +12,33 @@ import Coinflip from '@/components/casino/Coinflip'
 import Duels from '@/components/casino/Duels'
 import Plinko from '@/components/casino/Plinko'
 import Crash from '@/components/casino/Crash'
+import { BlackjackTable } from '@/components/casino/BlackjackTable'
+import { EuropeanRoulette } from '@/components/casino/EuropeanRoulette'
+import { SlotMachine } from '@/components/casino/SlotMachine'
 import { MainLayout } from '@/components/layout/MainLayout'
 import { createClient } from '@/lib/supabase/client'
 import { useUserStats } from '@/hooks/useUserStats'
 
 const TABS = [
+  { id: 'blackjack', label: '🃏 Blackjack 21', economy: 'coins' },
+  { id: 'roulette_v2', label: '🎡 Ruleta Europea', economy: 'coins' },
+  { id: 'slots_v2', label: '🎰 Tragaperras', economy: 'coins' },
   { id: 'plinko', label: '🔻 Plinko', economy: 'coins' },
   { id: 'crash', label: '🚀 Crash', economy: 'coins' },
-  { id: 'slots', label: '🎰 Bonanza', economy: 'rpg' },
-  { id: 'mines', label: '💎 Minas', economy: 'rpg' },
-  { id: 'roulette', label: '🎡 Ruleta', economy: 'rpg' },
-  { id: 'coin', label: '🪙 Cara/Cruz', economy: 'rpg' },
-  { id: 'duels', label: '⚔️ Duelos', economy: 'rpg' },
+  { id: 'mines', label: '💎 Minas (RPG)', economy: 'rpg' },
+  { id: 'coin', label: '🪙 Cara/Cruz (RPG)', economy: 'rpg' },
+  { id: 'duels', label: '⚔️ Duelos (RPG)', economy: 'rpg' },
 ] as const
 
 type Tab = (typeof TABS)[number]['id']
 
 export default function ApuestasPage() {
-  // Cliente estable: si se recreara en cada render, Realtime se resuscribiría sin parar.
   const [supabase] = useState(() => createClient())
-  const { stats: coinStats } = useUserStats(supabase)
+  const { stats: coinStats, refresh: mutateStats } = useUserStats(supabase)
 
   const { stats, error } = useRpg()
   const { show, node } = useNotice()
-  const [tab, setTab] = useState<Tab>('plinko')
+  const [tab, setTab] = useState<Tab>('blackjack')
   const props = { stats, notify: show }
 
   const active = TABS.find((t) => t.id === tab)
@@ -76,8 +79,8 @@ export default function ApuestasPage() {
                 onClick={() => setTab(t.id)}
                 className={`cursor-pointer whitespace-nowrap rounded-xl border px-4 py-2 text-sm font-bold transition ${
                   tab === t.id
-                    ? 'border-fuchsia-400 bg-fuchsia-500/20 text-fuchsia-100'
-                    : 'border-white/10 text-zinc-400'
+                    ? 'border-fuchsia-400 bg-fuchsia-500/20 text-fuchsia-100 shadow-md shadow-fuchsia-500/20'
+                    : 'border-white/10 text-zinc-400 hover:border-white/20 hover:text-zinc-200'
                 }`}
               >
                 {t.label}
@@ -88,11 +91,30 @@ export default function ApuestasPage() {
           {error && !usesCoins && <p className="text-center text-sm text-red-400">{String(error)}</p>}
 
           <motion.div key={tab} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }}>
+            {tab === 'blackjack' && (
+              <BlackjackTable
+                supabase={supabase}
+                coins={coinStats?.coins ?? 0}
+                onBalanceChange={() => void mutateStats()}
+              />
+            )}
+            {tab === 'roulette_v2' && (
+              <EuropeanRoulette
+                supabase={supabase}
+                coins={coinStats?.coins ?? 0}
+                onBalanceChange={() => void mutateStats()}
+              />
+            )}
+            {tab === 'slots_v2' && (
+              <SlotMachine
+                supabase={supabase}
+                coins={coinStats?.coins ?? 0}
+                onBalanceChange={() => void mutateStats()}
+              />
+            )}
             {tab === 'plinko' && <Plinko supabase={supabase} coins={coinStats?.coins ?? 0} />}
             {tab === 'crash' && <Crash supabase={supabase} coins={coinStats?.coins ?? 0} />}
-            {tab === 'slots' && <Slots {...props} />}
             {tab === 'mines' && <Mines {...props} />}
-            {tab === 'roulette' && <Roulette {...props} />}
             {tab === 'coin' && <Coinflip {...props} />}
             {tab === 'duels' && <Duels {...props} />}
           </motion.div>

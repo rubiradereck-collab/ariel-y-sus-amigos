@@ -7,11 +7,15 @@ import { motion, AnimatePresence } from "framer-motion"
 import { 
   Send, Hash, Users, Plus, Sparkles, Zap, Paperclip, Smile, Image as ImageIcon, 
   Mic, Settings, MoreVertical, Search, Bell, Bot, PhoneCall, Video, Headphones, 
-  Music, FileAudio, Fish, Pickaxe, Palette, Heart, Swords, Hand, Square, Check, X, Loader2
+  Music, FileAudio, Fish, Pickaxe, Palette, Heart, Swords, Hand, Square, Check, X, Loader2,
+  Reply, Volume2, VolumeX, ChevronDown
 } from 'lucide-react'
 import EmojiPicker from 'emoji-picker-react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { ReplyBar } from '@/components/chat/ReplyBar'
+import { NewMessagesPill } from '@/components/chat/NewMessagesPill'
+import { ReactionPicker, QUICK_EMOJIS } from '@/components/chat/ReactionPicker'
 
 export default function ChatPage() {
   const [channels, setChannels] = useState<any[]>([])
@@ -23,6 +27,14 @@ export default function ChatPage() {
   const [showEmoji, setShowEmoji] = useState(false)
   const [profile, setProfile] = useState<any>(null)
   const [themeColor, setThemeColor] = useState('cyan')
+
+  // Nuevas funciones de Entrega 3: Citar, Reacciones, Sonido y Scroll Inteligente
+  const [replyingTo, setReplyingTo] = useState<any | null>(null)
+  const [unreadBelow, setUnreadBelow] = useState<number>(0)
+  const [soundEnabled, setSoundEnabled] = useState<boolean>(true)
+  const [hoveredMsgId, setHoveredMsgId] = useState<string | null>(null)
+  const [reactionsMap, setReactionsMap] = useState<Record<string, Record<string, number>>>({})
+  const isAtBottomRef = useRef<boolean>(true)
   
   // Grabación de Voz Real (Voice Notes)
   const [isRecording, setIsRecording] = useState(false)
@@ -34,6 +46,26 @@ export default function ChatPage() {
 
   const messagesEndRef = useRef<HTMLDivElement>(null)
   const supabase = createClient()
+
+  const playPopSound = () => {
+    if (!soundEnabled) return
+    try {
+      const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
+      const osc = ctx.createOscillator()
+      const gain = ctx.createGain()
+      osc.type = 'sine'
+      osc.frequency.setValueAtTime(800, ctx.currentTime)
+      osc.frequency.exponentialRampToValueAtTime(400, ctx.currentTime + 0.08)
+      gain.gain.setValueAtTime(0.15, ctx.currentTime)
+      gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.08)
+      osc.connect(gain)
+      gain.connect(ctx.destination)
+      osc.start()
+      osc.stop(ctx.currentTime + 0.08)
+    } catch {
+      // Ignorar
+    }
+  }
 
   // Sincronizar referencia del canal activo
   useEffect(() => {
@@ -47,11 +79,13 @@ export default function ChatPage() {
     const savedColor = localStorage.getItem('chatThemeColor')
     if (savedColor) setThemeColor(savedColor)
 
+    const savedSound = localStorage.getItem('chatSoundEnabled')
+    if (savedSound !== null) setSoundEnabled(savedSound === 'true')
+
     // Listener Realtime aislado por canal
     const channel = supabase
       .channel('public:messages')
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, async (payload) => {
-        // Solo procesar si el mensaje pertenece al canal que el usuario está viendo actualmente
         if (activeChannelRef.current && payload.new.channel_id === activeChannelRef.current.id) {
           const { data } = await supabase
             .from('messages')
@@ -64,20 +98,94 @@ export default function ChatPage() {
               if (current.some(m => m.id === data.id)) return current
               return [...current, data]
             })
-            setTimeout(() => {
-              const el = document.getElementById('messages-container')
-              if (el) el.scrollTop = el.scrollHeight
-            }, 100)
+
+            const isMine = profile && data.sender_id === profile.id
+            if (isMine || isAtBottomRef.current) {
+              setTimeout(() => {
+                const el = document.getElementById('messages-container')
+                if (el) el.scrollTop = el.scrollHeight
+                setUnreadBelow(0)
+              }, 60)
+            } else {
+              setUnreadBelow(prev => prev + 1)
+              playPopSound()
+            }
           }
         }
       })
       .subscribe()
 
+    // Listener de Reacciones en Realtime
+    const reactChannel = supabase
+      .channel('public:reactions')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'message_reactions' }, () => {
+        void fetchReactions()
+      })
+      .subscribe()
+
     return () => { 
       supabase.removeChannel(channel)
+      supabase.removeChannel(reactChannel)
       if (timerIntervalRef.current) clearInterval(timerIntervalRef.current)
     }
-  }, [])
+  }, [profile, soundEnabled])
+
+  const fetchReactions = async () => {
+    try {
+      const { data, error } = await supabase.from('message_reactions').select('message_id, emoji')
+      if (!error && data) {
+        const map: Record<string, Record<string, number>> = {}
+        for (const r of data) {
+          if (!map[r.message_id]) map[r.message_id] = {}
+          map[r.message_id][r.emoji] = (map[r.message_id][r.emoji] || 0) + 1
+        }
+        setReactionsMap(map)
+      }
+    } catch {
+      // Ignorar si la tabla se está inicializando
+    }
+  }
+
+  const toggleReaction = async (messageId: string, emoji: string) => {
+    if (!profile) return
+    try {
+      // Comprobar si ya reaccioné
+      const { data } = await supabase
+        .from('message_reactions')
+        .select('*')
+        .eq('message_id', messageId)
+        .eq('user_id', profile.id)
+        .eq('emoji', emoji)
+        .maybeSingle()
+
+      if (data) {
+        await supabase
+          .from('message_reactions')
+          .delete()
+          .eq('message_id', messageId)
+          .eq('user_id', profile.id)
+          .eq('emoji', emoji)
+      } else {
+        await supabase
+          .from('message_reactions')
+          .insert([{ message_id: messageId, user_id: profile.id, emoji }])
+      }
+      await fetchReactions()
+    } catch {
+      // Fallback
+    }
+  }
+
+  const handleContainerScroll = (e: React.UIEvent<HTMLDivElement>) => {
+    const el = e.currentTarget
+    const threshold = 80
+    const distanceToBottom = el.scrollHeight - el.scrollTop - el.clientHeight
+    const atBottom = distanceToBottom < threshold
+    isAtBottomRef.current = atBottom
+    if (atBottom) {
+      setUnreadBelow(0)
+    }
+  }
 
   useEffect(() => {
     scrollToBottom()
@@ -198,16 +306,24 @@ export default function ChatPage() {
       profiles: {
         nickname: profile.nickname || 'Tú',
         avatar_url: profile.avatar_url
-      }
+      },
+      reply_to: replyingTo?.id || null
     }
+    const currentReplyId = replyingTo?.id || null
+    setReplyingTo(null)
     setMessages(prev => [...prev, optimisticMsg])
 
     // 2. Enviar a Supabase
-    const { data } = await supabase.from('messages').insert([{
+    const payload: any = {
       channel_id: activeChannel.id,
       sender_id: profile.id,
       content
-    }]).select('*, profiles:sender_id(nickname, avatar_url)').single()
+    }
+    if (currentReplyId) {
+      payload.reply_to = currentReplyId
+    }
+
+    const { data } = await supabase.from('messages').insert([payload]).select('*, profiles:sender_id(nickname, avatar_url)').single()
 
     if (data) {
       setMessages(prev => prev.map(m => m.id === tempId ? data : m))
@@ -387,7 +503,19 @@ export default function ChatPage() {
                 <p className="text-xs text-zinc-400 font-medium">{activeChannel.description}</p>
               </div>
               
-              <div className="flex items-center gap-4 text-zinc-400">
+              <div className="flex items-center gap-3 text-zinc-400">
+                <button
+                  type="button"
+                  onClick={() => {
+                    const next = !soundEnabled
+                    setSoundEnabled(next)
+                    localStorage.setItem('chatSoundEnabled', String(next))
+                  }}
+                  title={soundEnabled ? 'Sonido activado' : 'Sonido silenciado'}
+                  className="rounded-lg p-1.5 text-zinc-400 hover:bg-white/5 hover:text-white transition cursor-pointer"
+                >
+                  {soundEnabled ? <Volume2 className="h-4 w-4 text-emerald-400" /> : <VolumeX className="h-4 w-4 text-zinc-500" />}
+                </button>
                 <PhoneCall className="w-5 h-5 hover:text-white cursor-pointer" />
                 <Video className="w-5 h-5 hover:text-white cursor-pointer" />
                 <div className="relative">
@@ -399,7 +527,11 @@ export default function ChatPage() {
           )}
 
           {/* MENSAJES */}
-          <div id="messages-container" className="flex-1 overflow-y-auto p-6 space-y-6 hide-scrollbar relative z-10 scroll-smooth">
+          <div
+            id="messages-container"
+            onScroll={handleContainerScroll}
+            className="flex-1 overflow-y-auto p-6 space-y-6 hide-scrollbar relative z-10 scroll-smooth"
+          >
             <AnimatePresence initial={false}>
               {messages.map((msg, i) => {
                 const isMe = msg.sender_id === profile?.id
@@ -455,12 +587,32 @@ export default function ChatPage() {
                           </div>
                         )}
                         
-                        <div className={`
-                          max-w-[70%] px-4 py-2.5 rounded-2xl relative group text-[14.5px] leading-relaxed
-                          ${isMe 
-                            ? `bg-gradient-to-br ${activeTheme.split(' ')[0]} ${activeTheme.split(' ')[1]} text-white rounded-tr-sm shadow-md` 
-                            : 'bg-zinc-800 text-zinc-100 rounded-tl-sm'}
-                        `}>
+                        {/* Burbuja de Mensaje */}
+                        <div 
+                          id={`msg-${msg.id}`}
+                          onMouseEnter={() => setHoveredMsgId(msg.id)}
+                          onMouseLeave={() => setHoveredMsgId(null)}
+                          className={`
+                            max-w-[70%] px-4 py-2.5 rounded-2xl relative group text-[14.5px] leading-relaxed
+                            ${isMe 
+                              ? `bg-gradient-to-br ${activeTheme.split(' ')[0]} ${activeTheme.split(' ')[1]} text-white rounded-tr-sm shadow-md` 
+                              : 'bg-zinc-800 text-zinc-100 rounded-tl-sm'}
+                          `}
+                        >
+                          {/* Previsualización de Mensaje Citado */}
+                          {msg.reply_to && (() => {
+                            const parent = messages.find(m => m.id === msg.reply_to)
+                            return parent ? (
+                              <div
+                                onClick={() => document.getElementById(`msg-${parent.id}`)?.scrollIntoView({ behavior: 'smooth' })}
+                                className="mb-2 cursor-pointer rounded-xl border-l-2 border-fuchsia-400 bg-black/30 px-2.5 py-1 text-xs text-zinc-300 hover:bg-black/50 transition-colors"
+                              >
+                                <span className="font-bold text-fuchsia-300">@{parent.profiles?.nickname || 'Usuario'}: </span>
+                                <span className="truncate opacity-80">{parent.content}</span>
+                              </div>
+                            ) : null
+                          })()}
+
                           {isAudio ? (
                             <div className="py-1">
                               <span className="text-[11px] font-bold text-white/70 block mb-1">Nota de Voz 🎙️</span>
@@ -478,7 +630,47 @@ export default function ChatPage() {
                           ) : (
                             <p className="break-words">{msg.content}</p>
                           )}
+
+                          {/* Toolbar Flotante al Pasar el Cursor */}
+                          {hoveredMsgId === msg.id && (
+                            <div className={`absolute -top-7 ${isMe ? 'right-0' : 'left-0'} z-30 flex items-center gap-1 rounded-full border border-white/10 bg-zinc-900/90 px-2 py-0.5 shadow-xl backdrop-blur-md`}>
+                              <button
+                                onClick={() => setReplyingTo(msg)}
+                                title="Responder a este mensaje"
+                                className="flex cursor-pointer items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-bold text-zinc-300 hover:bg-white/10"
+                              >
+                                <Reply className="h-3 w-3 text-fuchsia-400" />
+                                <span>Citar</span>
+                              </button>
+                              <div className="h-3 w-[1px] bg-white/10 mx-0.5" />
+                              {['👍', '❤️', '😂', '🔥'].map((em) => (
+                                <button
+                                  key={em}
+                                  onClick={() => toggleReaction(msg.id, em)}
+                                  className="cursor-pointer rounded-full p-0.5 text-xs hover:scale-125 transition-transform"
+                                >
+                                  {em}
+                                </button>
+                              ))}
+                            </div>
+                          )}
                         </div>
+
+                        {/* Insignias de Reacciones Agrupadas */}
+                        {reactionsMap[msg.id] && Object.keys(reactionsMap[msg.id]).length > 0 && (
+                          <div className={`flex flex-wrap gap-1 mt-1 ${isMe ? 'justify-end' : 'justify-start'}`}>
+                            {Object.entries(reactionsMap[msg.id]).map(([em, cnt]) => (
+                              <button
+                                key={em}
+                                onClick={() => toggleReaction(msg.id, em)}
+                                className="flex cursor-pointer items-center gap-1 rounded-full border border-white/10 bg-black/50 px-2 py-0.5 text-xs text-zinc-200 hover:bg-white/10 transition"
+                              >
+                                <span>{em}</span>
+                                <span className="text-[10px] font-bold text-zinc-400">{cnt}</span>
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </>
                     )}
                   </motion.div>
@@ -486,6 +678,16 @@ export default function ChatPage() {
               })}
             </AnimatePresence>
             <div ref={messagesEndRef} />
+
+            {/* Píldora de Nuevos Mensajes */}
+            <NewMessagesPill 
+              count={unreadBelow} 
+              onClick={() => {
+                const el = document.getElementById('messages-container')
+                if (el) el.scrollTo({ top: el.scrollHeight, behavior: 'smooth' })
+                setUnreadBelow(0)
+              }} 
+            />
           </div>
 
           {/* BOTONES INTERACCIÓN & ENLACES RPG */}
@@ -509,6 +711,11 @@ export default function ChatPage() {
           
           {/* INPUT AREA Y GRABADORA DE VOZ */}
           <div className="px-6 pb-6 pt-3 bg-transparent">
+            {replyingTo && (
+              <div className="mb-2">
+                <ReplyBar replyingTo={replyingTo} onCancel={() => setReplyingTo(null)} />
+              </div>
+            )}
             {isRecording ? (
               <div className="bg-red-950/40 border border-red-500/40 rounded-xl px-4 py-3 flex items-center justify-between animate-pulse">
                 <div className="flex items-center gap-3">

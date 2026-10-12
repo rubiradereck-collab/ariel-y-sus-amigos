@@ -2,6 +2,7 @@
 
 import {
   createContext,
+  Suspense,
   useCallback,
   useContext,
   useEffect,
@@ -113,7 +114,6 @@ export function formatTime(sec: number): string {
 
 export function MusicProvider({ children }: { children: ReactNode }) {
   const [supabase] = useState(() => createClient())
-  const pathname = usePathname()
 
   const [userId, setUserId] = useState<string | null>(null)
   const [items, setItems] = useState<QueueItem[]>([])
@@ -584,7 +584,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         className="pointer-events-none fixed -left-[9999px] top-0 h-[200px] w-[200px] overflow-hidden"
       />
 
-      {userId && current && pathname !== '/musica' && <MiniPlayer />}
+      {userId && current && (
+        <Suspense fallback={null}>
+          <MiniPlayerWrapper />
+        </Suspense>
+      )}
     </MusicContext.Provider>
   )
 }
@@ -592,6 +596,12 @@ export function MusicProvider({ children }: { children: ReactNode }) {
 /* ------------------------------------------------------------------ */
 /* Mini-reproductor global                                             */
 /* ------------------------------------------------------------------ */
+
+function MiniPlayerWrapper() {
+  const pathname = usePathname()
+  if (pathname === '/musica') return null
+  return <MiniPlayer />
+}
 
 function MiniPlayer() {
   const { current, elapsed, listening, setListening, volume, setVolume, autoplayBlocked, resume, voteSkip } =

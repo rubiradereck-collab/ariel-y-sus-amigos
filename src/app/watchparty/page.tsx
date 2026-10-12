@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { toast } from 'sonner'
-import { Crown, Link as LinkIcon, Popcorn, Send, Users } from 'lucide-react'
+import { Crown, Link as LinkIcon, Popcorn, Send, Users, Upload, Info, ChevronDown, ChevronUp, FileVideo } from 'lucide-react'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 import type Hls from 'hls.js'
 import { MainLayout } from '@/components/layout/MainLayout'
@@ -109,6 +109,9 @@ export default function WatchPartyPage() {
   const [reactions, setReactions] = useState<FloatingReaction[]>([])
   const [now, setNow] = useState<number>(0)
   const [myId, setMyId] = useState<string | null>(null)
+  const [uploading, setUploading] = useState<boolean>(false)
+  const [showDrmInfo, setShowDrmInfo] = useState<boolean>(false)
+  const fileInputRef = useRef<HTMLInputElement | null>(null)
 
   const channelRef = useRef<RealtimeChannel | null>(null)
   const ctrlRef = useRef<Controller | null>(null)
@@ -446,6 +449,38 @@ export default function WatchPartyPage() {
     setUrlInput('')
   }
 
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0]
+    if (!file) return
+    if (file.size > 52428800) {
+      toast.error('El archivo supera los 50 MB (límite del plan gratuito de Supabase)')
+      return
+    }
+    setUploading(true)
+    const toastId = toast.loading('Subiendo video a la sala…')
+    try {
+      const fileName = `${myId || 'anon'}/${Date.now()}_${file.name.replace(/[^a-zA-Z0-9._-]/g, '_')}`
+      const { error } = await supabase.storage.from('watchparty').upload(fileName, file, {
+        cacheControl: '3600',
+        upsert: false,
+      })
+      if (error) {
+        toast.error(`Error al subir: ${error.message}`, { id: toastId })
+        return
+      }
+      const { data: pub } = supabase.storage.from('watchparty').getPublicUrl(fileName)
+      toast.success('¡Video subido con éxito!', { id: toastId })
+      const src: Source = { kind: 'file', url: pub.publicUrl }
+      loadSource(src, { t: 0, playing: true })
+      send('load', { source: src })
+    } catch {
+      toast.error('Error al procesar el archivo', { id: toastId })
+    } finally {
+      setUploading(false)
+      if (fileInputRef.current) fileInputRef.current.value = ''
+    }
+  }
+
   const handleSendChat = (e: React.FormEvent) => {
     e.preventDefault()
     const text = chatInput.trim().slice(0, 200)
@@ -573,10 +608,57 @@ export default function WatchPartyPage() {
               </div>
               <button
                 onClick={handleLoad}
-                className="rounded-xl bg-red-600 px-6 py-3 font-black uppercase text-white transition hover:bg-red-500"
+                className="cursor-pointer rounded-xl bg-red-600 px-6 py-3 font-black uppercase text-white transition hover:bg-red-500"
               >
                 Reproducir para todos
               </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="video/mp4,video/webm,video/ogg"
+                onChange={handleFileUpload}
+                className="hidden"
+              />
+              <button
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="flex cursor-pointer items-center justify-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-xs font-bold uppercase tracking-wider text-zinc-300 transition hover:bg-white/10 disabled:opacity-50"
+              >
+                <Upload className="h-4 w-4 text-red-400" />
+                {uploading ? 'Subiendo…' : 'Subir .mp4 (50MB)'}
+              </button>
+            </div>
+
+            {/* Bloque Informativo: ¿Por qué no Netflix / Disney+? */}
+            <div className="mt-4 overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+              <button
+                onClick={() => setShowDrmInfo((v) => !v)}
+                className="flex w-full cursor-pointer items-center justify-between p-3.5 text-left text-xs font-bold text-zinc-400 transition hover:bg-white/5"
+              >
+                <span className="flex items-center gap-2 text-zinc-300">
+                  <Info className="h-4 w-4 text-yellow-400" />
+                  ¿Se pueden reproducir enlaces de Netflix, Disney+ o Prime Video?
+                </span>
+                {showDrmInfo ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />}
+              </button>
+              {showDrmInfo && (
+                <div className="border-t border-white/5 p-4 text-xs leading-relaxed text-zinc-400 space-y-2">
+                  <p>
+                    <strong className="text-zinc-200">No es posible técnica ni legalmente:</strong> Las plataformas de streaming comerciales utilizan medidas de seguridad estrictas que impiden su inserción en reproductores web de terceros:
+                  </p>
+                  <ul className="list-disc pl-5 space-y-1 text-zinc-400">
+                    <li>
+                      <strong className="text-zinc-300">Cabeceras anti-embebido:</strong> Sus servidores envían <code className="text-red-400">X-Frame-Options: DENY</code> y <code className="text-red-400">Content-Security-Policy: frame-ancestors &apos;none&apos;</code>, lo que hace que los navegadores bloqueen de inmediato cualquier intento de cargarlas dentro de otra web.
+                    </li>
+                    <li>
+                      <strong className="text-zinc-300">Cifrado DRM de Hardware (Widevine / PlayReady):</strong> El video viaja cifrado en bloques CENC y se decodifica en un chip protegido del sistema operativo. La clave nunca pasa por JavaScript, y compartirla eludiendo la protección viola las leyes de derechos de autor (DMCA §1201).
+                    </li>
+                  </ul>
+                  <p className="text-zinc-300">
+                    💡 <strong>Solución soportada:</strong> Puedes ver videos sincronizados de <span className="text-red-400">YouTube</span>, streams en directo <span className="text-red-400">.m3u8 (HLS)</span> y archivos <span className="text-red-400">.mp4 / .webm</span> directos o subidos desde tu equipo con el botón de subida.
+                  </p>
+                </div>
+              )}
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
