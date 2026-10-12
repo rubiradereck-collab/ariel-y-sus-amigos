@@ -7,10 +7,8 @@ alter table public.user_stats add column if not exists xp bigint not null defaul
 -- ---------- 0. HELPERS ------------------------------------------------
 create or replace function public._secure_int(n int) returns int
 language plpgsql volatile as $$
-declare b bytea := gen_random_bytes(4);
 begin
-  return ((get_byte(b,0)::bigint*16777216 + get_byte(b,1)*65536
-         + get_byte(b,2)*256 + get_byte(b,3)) % n)::int;
+  return floor(random() * n)::int;
 end $$;
 
 create or replace function public._wallet_debit(p_uid uuid, p_amt bigint) returns bigint

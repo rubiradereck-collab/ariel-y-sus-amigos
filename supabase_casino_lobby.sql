@@ -72,12 +72,12 @@ begin
   -- Débito atómico
   perform public._wallet_debit(v_uid, p_bet);
 
-  -- Semilla y Provably Fair Hash
-  v_server_seed := encode(gen_random_bytes(16), 'hex');
-  v_client_hash := encode(digest(v_server_seed, 'sha256'), 'hex');
+  -- Semilla y Provably Fair Hash (nativo sin extensiones)
+  v_server_seed := md5(random()::text || clock_timestamp()::text || v_uid::text);
+  v_client_hash := md5(v_server_seed);
 
   -- Tirada aleatoria del 1 al 100
-  v_roll := (public._secure_int(100)) + 1;
+  v_roll := floor(random() * 100)::int + 1;
 
   if p_mode = 'over' then
     v_win := (v_roll > p_target);

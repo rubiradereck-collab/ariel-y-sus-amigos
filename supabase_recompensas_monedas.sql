@@ -284,8 +284,8 @@ begin
     );
   end if;
 
-  -- Número aleatorio de 0 a 99
-  v_roll := ((get_byte(gen_random_bytes(2), 0) * 256 + get_byte(gen_random_bytes(2), 1)) % 100);
+  -- Número aleatorio de 0 a 99 (nativo PostgreSQL, sin depender de extensiones)
+  v_roll := floor(random() * 100)::int;
 
   if v_roll < 35 then
     -- 35%: 50 monedas
