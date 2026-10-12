@@ -1,4 +1,4 @@
-﻿-- =====================================================================
+-- =====================================================================
 -- ARIEL Y SUS AMIGOS (Y JOEL) · SCRIPT MAESTRO UNIFICADO DE SUPABASE
 -- =====================================================================
 -- Ejecuta este script COMPLETO de una sola vez en el SQL Editor de Supabase.
@@ -17,13 +17,13 @@
 -- =====================================================================
 
 -- =====================================================================
--- ARIEL Y SUS AMIGOS (Y JOEL) Â· economia_v2.sql
+-- ARIEL Y SUS AMIGOS (Y JOEL) · economia_v2.sql
 -- Idempotente: se puede ejecutar varias veces en el SQL Editor de Supabase.
--- Ejecutar DESPUÃ‰S de supabase_schema.sql y supabase_gamification.sql.
+-- Ejecutar DESPUÉS de supabase_schema.sql y supabase_gamification.sql.
 --
 -- NOTA: si ya tienes una tabla public.user_stats creada por
--- supabase_rpg_schema.sql (que NO estÃ¡ en el repo de GitHub), este script
--- solo AÃ‘ADE las columnas que falten. Revisa el bloque "MIGRACIÃ“N LEGACY".
+-- supabase_rpg_schema.sql (que NO está en el repo de GitHub), este script
+-- solo AÑADE las columnas que falten. Revisa el bloque "MIGRACIÓN LEGACY".
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
@@ -40,7 +40,7 @@ CREATE POLICY "Usuarios pueden actualizar su propio perfil" ON public.profiles
 REVOKE UPDATE ON public.profiles FROM authenticated, anon;
 GRANT UPDATE (nickname, avatar_url, bio, last_seen) ON public.profiles TO authenticated;
 
--- 0.2 Impedir suplantaciÃ³n: el autor/remitente debe ser auth.uid().
+-- 0.2 Impedir suplantación: el autor/remitente debe ser auth.uid().
 DROP POLICY IF EXISTS "Crear posts" ON public.posts;
 CREATE POLICY "Crear posts" ON public.posts
   FOR INSERT TO authenticated WITH CHECK (author_id = (SELECT auth.uid()));
@@ -81,7 +81,7 @@ DROP POLICY IF EXISTS "Crear logros usuarios" ON public.user_achievements;
 DROP POLICY IF EXISTS "Crear scores" ON public.game_scores;
 REVOKE INSERT, UPDATE, DELETE ON public.user_achievements, public.game_scores FROM authenticated, anon;
 
--- 0.4 Trigger de alta de usuario: search_path fijo + sin colisiÃ³n de username.
+-- 0.4 Trigger de alta de usuario: search_path fijo + sin colisión de username.
 CREATE OR REPLACE FUNCTION public.handle_new_user()
 RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
@@ -96,14 +96,14 @@ BEGIN
   RETURN new;
 END $$;
 
--- 0.5 Ãndices que faltaban
+-- 0.5 Índices que faltaban
 CREATE INDEX IF NOT EXISTS idx_messages_channel_created ON public.messages (channel_id, created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_comments_post_created    ON public.comments (post_id, created_at);
 CREATE INDEX IF NOT EXISTS idx_reactions_post           ON public.reactions (post_id);
 CREATE INDEX IF NOT EXISTS idx_posts_created            ON public.posts (created_at DESC);
 
 -- ---------------------------------------------------------------------
--- 1. ECONOMÃA UNIFICADA
+-- 1. ECONOMÍA UNIFICADA
 --    coins    = moneda que se gasta (tienda, apuestas)
 --    xp_total = progreso permanente (NUNCA se gasta) -> define el nivel
 -- ---------------------------------------------------------------------
@@ -119,7 +119,7 @@ CREATE TABLE IF NOT EXISTS public.user_stats (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
--- Por si user_stats ya existÃ­a con otras columnas:
+-- Por si user_stats ya existía con otras columnas:
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS coins bigint NOT NULL DEFAULT 500 CHECK (coins >= 0);
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS xp_total bigint NOT NULL DEFAULT 0 CHECK (xp_total >= 0);
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS level int NOT NULL DEFAULT 1;
@@ -129,7 +129,7 @@ ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS total_wagered bigint NOT 
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS biggest_win bigint NOT NULL DEFAULT 0;
 ALTER TABLE public.user_stats ADD COLUMN IF NOT EXISTS updated_at timestamptz NOT NULL DEFAULT now();
 
--- MIGRACIÃ“N LEGACY (descomenta SOLO si existe la columna xp_balance y quieres convertirla):
+-- MIGRACIÓN LEGACY (descomenta SOLO si existe la columna xp_balance y quieres convertirla):
 -- UPDATE public.user_stats SET coins = coins + xp_balance WHERE xp_balance > 0;
 
 CREATE TABLE IF NOT EXISTS public.economy_ledger (
@@ -185,13 +185,13 @@ CREATE TABLE IF NOT EXISTS public.crash_rounds (
 );
 CREATE UNIQUE INDEX IF NOT EXISTS crash_one_running ON public.crash_rounds (user_id) WHERE status = 'running';
 
--- RLS: lectura para autenticados; ESCRITURA SOLO vÃ­a RPC.
+-- RLS: lectura para autenticados; ESCRITURA SOLO vía RPC.
 ALTER TABLE public.user_stats     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.economy_ledger ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.game_history   ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.shop_items     ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_inventory ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.crash_rounds   ENABLE ROW LEVEL SECURITY;  -- sin polÃ­ticas: el crash_point queda oculto
+ALTER TABLE public.crash_rounds   ENABLE ROW LEVEL SECURITY;  -- sin políticas: el crash_point queda oculto
 
 DROP POLICY IF EXISTS "stats lectura"     ON public.user_stats;
 DROP POLICY IF EXISTS "ledger propio"     ON public.economy_ledger;
@@ -216,7 +216,7 @@ INSERT INTO public.user_stats (user_id) SELECT id FROM public.profiles ON CONFLI
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.secure_rand() RETURNS double precision
 LANGUAGE sql VOLATILE AS $$
-  -- 48 bits aleatorios de gen_random_uuid() (se evita el nibble de versiÃ³n, pos. 13)
+  -- 48 bits aleatorios de gen_random_uuid() (se evita el nibble de versión, pos. 13)
   SELECT (('x' || substr(replace(gen_random_uuid()::text, '-', ''), 1, 12))::bit(48)::bigint)
          / 281474976710656::double precision;
 $$;
@@ -231,7 +231,7 @@ LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$
   INSERT INTO public.user_stats (user_id) VALUES (p_user) ON CONFLICT DO NOTHING;
 $$;
 
--- Ãšnico punto por el que cambia el saldo: bloquea la fila, valida y deja rastro.
+-- Único punto por el que cambia el saldo: bloquea la fila, valida y deja rastro.
 CREATE OR REPLACE FUNCTION public.economy_apply(p_user uuid, p_delta bigint, p_reason text, p_ref text DEFAULT NULL)
 RETURNS bigint LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_balance bigint;
@@ -246,7 +246,7 @@ BEGIN
   RETURN v_balance;
 END $$;
 
--- Registra la jugada, actualiza estadÃ­sticas y da XP (con multiplicador si hay boost).
+-- Registra la jugada, actualiza estadísticas y da XP (con multiplicador si hay boost).
 CREATE OR REPLACE FUNCTION public.record_game(p_user uuid, p_game text, p_bet bigint, p_payout bigint)
 RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE v_mult numeric; v_gain bigint;
@@ -269,9 +269,9 @@ REVOKE ALL ON FUNCTION public.record_game(uuid, text, bigint, bigint) FROM PUBLI
 REVOKE ALL ON FUNCTION public.ensure_user_stats(uuid) FROM PUBLIC, anon, authenticated;
 
 -- ---------------------------------------------------------------------
--- 3. TIENDA ATÃ“MICA
+-- 3. TIENDA ATÓMICA
 -- ---------------------------------------------------------------------
--- p_price se acepta por compatibilidad, pero NUNCA se confÃ­a en Ã©l: si no coincide
+-- p_price se acepta por compatibilidad, pero NUNCA se confía en él: si no coincide
 -- con el precio de la base de datos, se rechaza ('price_changed').
 CREATE OR REPLACE FUNCTION public.buy_shop_item(p_item_id text, p_price int DEFAULT NULL)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
@@ -286,7 +286,7 @@ BEGIN
   IF p_price IS NOT NULL AND p_price <> v_item.price THEN RAISE EXCEPTION 'price_changed'; END IF;
 
   PERFORM public.ensure_user_stats(v_uid);
-  PERFORM 1 FROM public.user_stats WHERE user_id = v_uid FOR UPDATE;   -- serializa compras simultÃ¡neas
+  PERFORM 1 FROM public.user_stats WHERE user_id = v_uid FOR UPDATE;   -- serializa compras simultáneas
 
   IF v_item.category <> 'boost' AND EXISTS (
     SELECT 1 FROM public.user_inventory WHERE user_id = v_uid AND item_id = v_item.id
@@ -326,18 +326,18 @@ BEGIN
 END $$;
 
 INSERT INTO public.shop_items (id, name, description, category, price, payload) VALUES
-  ('title_apostador',  'TÃ­tulo: El Apostador ðŸŽ°',      'Aparece junto a tu nombre en el chat',        'title',      300, '{"text":"El Apostador ðŸŽ°"}'),
-  ('title_minero',     'TÃ­tulo: Minero Supremo â›ï¸',    'Para los que viven en la cueva',              'title',      300, '{"text":"Minero Supremo â›ï¸"}'),
-  ('title_cinefilo',   'TÃ­tulo: CinÃ©filo ðŸ¿',          'Nunca se pierde una funciÃ³n',                 'title',      300, '{"text":"CinÃ©filo ðŸ¿"}'),
+  ('title_apostador',  'Título: El Apostador 🎰',      'Aparece junto a tu nombre en el chat',        'title',      300, '{"text":"El Apostador 🎰"}'),
+  ('title_minero',     'Título: Minero Supremo ⛏️',    'Para los que viven en la cueva',              'title',      300, '{"text":"Minero Supremo ⛏️"}'),
+  ('title_cinefilo',   'Título: Cinéfilo 🍿',          'Nunca se pierde una función',                 'title',      300, '{"text":"Cinéfilo 🍿"}'),
   ('color_oro',        'Nombre dorado',                'Tu nombre brilla en dorado',                  'name_color', 800, '{"color":"#FFD700"}'),
-  ('color_neon',       'Nombre verde neÃ³n',            'Imposible no verte en el chat',               'name_color', 800, '{"color":"#39FF14"}'),
+  ('color_neon',       'Nombre verde neón',            'Imposible no verte en el chat',               'name_color', 800, '{"color":"#39FF14"}'),
   ('color_ps_blue',    'Nombre azul PlayStation',      'El azul de siempre',                          'name_color', 600, '{"color":"#0070D1"}'),
-  ('cosm_marco_ps',    'Marco de perfil PlayStation',  'Marco con los sÃ­mbolos â–³ â—‹ âœ• â–¡',              'cosmetic',  1200, '{"frame":"ps"}'),
-  ('cosm_aura_fuego',  'Aura de fuego ðŸ”¥',             'Tu avatar arde (cosmÃ©tico)',                  'cosmetic',  1500, '{"aura":"fire"}'),
+  ('cosm_marco_ps',    'Marco de perfil PlayStation',  'Marco con los símbolos △ ○ ✕ □',              'cosmetic',  1200, '{"frame":"ps"}'),
+  ('cosm_aura_fuego',  'Aura de fuego 🔥',             'Tu avatar arde (cosmético)',                  'cosmetic',  1500, '{"aura":"fire"}'),
   ('boost_xp_x2_30',   'XP x2 (30 min)',               'Duplica la XP que ganas durante 30 minutos',  'boost',      500, '{"mult":2,"minutes":30}'),
   ('boost_xp_x3_15',   'XP x3 (15 min)',               'Triple XP durante 15 minutos',                'boost',      700, '{"mult":3,"minutes":15}'),
-  ('role_parentesis',  'Rol: El del parÃ©ntesis',       'Rol cÃ³mico oficial del grupo',                'role',      1000, '{"role":"El del parÃ©ntesis"}'),
-  ('role_cajero',      'Rol: Banquero del grupo ðŸ’°',   'Rol cÃ³mico: el que siempre presta',           'role',      1000, '{"role":"Banquero del grupo"}')
+  ('role_parentesis',  'Rol: El del paréntesis',       'Rol cómico oficial del grupo',                'role',      1000, '{"role":"El del paréntesis"}'),
+  ('role_cajero',      'Rol: Banquero del grupo 💰',   'Rol cómico: el que siempre presta',           'role',      1000, '{"role":"Banquero del grupo"}')
 ON CONFLICT (id) DO UPDATE SET
   name = EXCLUDED.name, description = EXCLUDED.description, category = EXCLUDED.category,
   price = EXCLUDED.price, payload = EXCLUDED.payload;
@@ -358,7 +358,7 @@ BEGIN
              WHEN 'first_blood'  THEN EXISTS (SELECT 1 FROM public.messages WHERE sender_id = v_uid)
              WHEN 'wall_breaker' THEN EXISTS (SELECT 1 FROM public.posts WHERE author_id = v_uid)
              WHEN 'meme_lord'    THEN EXISTS (SELECT 1 FROM public.memories WHERE author_id = v_uid AND type = 'meme')
-             ELSE false   -- trivia_master y otros: aÃ±adir su condiciÃ³n aquÃ­
+             ELSE false   -- trivia_master y otros: añadir su condición aquí
            END
   LOOP
     INSERT INTO public.user_achievements (user_id, achievement_id) VALUES (v_uid, r.id) ON CONFLICT DO NOTHING;
@@ -374,7 +374,7 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------
--- 5. PLINKO (8 filas, RTP â‰ˆ 96.7â€“96.9 %). La trayectoria la decide el servidor;
+-- 5. PLINKO (8 filas, RTP ≈ 96.7–96.9 %). La trayectoria la decide el servidor;
 --    el cliente solo anima la bola siguiendo "path".
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.plinko_drop(p_bet int, p_risk text)
@@ -417,9 +417,9 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------
--- 6. CRASH Â«To the MoonÂ» (RTP â‰ˆ 97 %). El punto de explosiÃ³n se decide al
---    empezar y NUNCA llega al cliente hasta que ya explotÃ³.
---    Multiplicador en funciÃ³n del tiempo: m(t) = e^(0.1Â·t), t en segundos.
+-- 6. CRASH «To the Moon» (RTP ≈ 97 %). El punto de explosión se decide al
+--    empezar y NUNCA llega al cliente hasta que ya explotó.
+--    Multiplicador en función del tiempo: m(t) = e^(0.1·t), t en segundos.
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.crash_mult(p_started timestamptz) RETURNS numeric
 LANGUAGE sql STABLE AS $$
@@ -484,7 +484,7 @@ BEGIN
   RETURN jsonb_build_object('ok', true, 'multiplier', v_mult, 'payout', v_payout, 'balance', v_balance);
 END $$;
 
--- El cliente la consulta (~cada 300-500 ms) para saber si el cohete ya explotÃ³.
+-- El cliente la consulta (~cada 300-500 ms) para saber si el cohete ya explotó.
 CREATE OR REPLACE FUNCTION public.crash_poll()
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
@@ -508,7 +508,7 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------
--- 7. PERMISOS DE EJECUCIÃ“N: solo usuarios autenticados llaman a las RPC pÃºblicas
+-- 7. PERMISOS DE EJECUCIÓN: solo usuarios autenticados llaman a las RPC públicas
 -- ---------------------------------------------------------------------
 REVOKE ALL ON FUNCTION public.buy_shop_item(text, int) FROM PUBLIC, anon;
 REVOKE ALL ON FUNCTION public.equip_item(text, boolean) FROM PUBLIC, anon;
@@ -542,7 +542,7 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------
--- 9. STORAGE: bucket muro-media (lectura pÃºblica, subida solo a tu carpeta {uid}/...)
+-- 9. STORAGE: bucket muro-media (lectura pública, subida solo a tu carpeta {uid}/...)
 -- ---------------------------------------------------------------------
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)
 VALUES ('muro-media', 'muro-media', true, 52428800,
@@ -573,12 +573,12 @@ CREATE POLICY "muro-media borrado propio" ON storage.objects
 -- =====================================================================
 
 -- =====================================================================
--- ARIEL Y SUS AMIGOS (Y JOEL) Â· supabase_update.sql
--- Idempotente. Ejecutar DESPUÃ‰S de economia_v2.sql.
+-- ARIEL Y SUS AMIGOS (Y JOEL) · supabase_update.sql
+-- Idempotente. Ejecutar DESPUÉS de economia_v2.sql.
 -- =====================================================================
 
 -- ---------------------------------------------------------------------
--- 1. MURO: varios archivos por publicaciÃ³n (carrusel)
+-- 1. MURO: varios archivos por publicación (carrusel)
 --    media = [{"url": "...", "type": "image" | "video"}, ...]
 --    media_url / media_type se siguen llenando con el primer archivo (compatibilidad).
 -- ---------------------------------------------------------------------
@@ -616,8 +616,8 @@ BEGIN
 END $$;
 
 -- ---------------------------------------------------------------------
--- 3. JUKEBOX DEL GRUPO (cola compartida + votaciÃ³n para saltar)
---    Todos escuchan la misma canciÃ³n a la vez: el servidor guarda cuÃ¡ndo empezÃ³.
+-- 3. JUKEBOX DEL GRUPO (cola compartida + votación para saltar)
+--    Todos escuchan la misma canción a la vez: el servidor guarda cuándo empezó.
 -- ---------------------------------------------------------------------
 CREATE TABLE IF NOT EXISTS public.music_queue (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -632,7 +632,7 @@ CREATE TABLE IF NOT EXISTS public.music_queue (
   created_at timestamptz NOT NULL DEFAULT now()
 );
 CREATE INDEX IF NOT EXISTS idx_music_queue_status ON public.music_queue (status, created_at);
--- GarantÃ­a a nivel de base de datos: nunca hay dos canciones "playing".
+-- Garantía a nivel de base de datos: nunca hay dos canciones "playing".
 CREATE UNIQUE INDEX IF NOT EXISTS music_one_playing ON public.music_queue ((true)) WHERE status = 'playing';
 
 CREATE TABLE IF NOT EXISTS public.music_skip_votes (
@@ -707,7 +707,7 @@ BEGIN
   INSERT INTO public.music_queue (added_by, title, url, kind, video_id, thumb, status, started_at)
   VALUES (
     v_uid,
-    left(coalesce(nullif(trim(p_title), ''), 'Sin tÃ­tulo'), 120),
+    left(coalesce(nullif(trim(p_title), ''), 'Sin título'), 120),
     p_url, p_kind, p_video_id, p_thumb,
     CASE WHEN v_has_playing THEN 'queued' ELSE 'playing' END,
     CASE WHEN v_has_playing THEN NULL ELSE clock_timestamp() END
@@ -716,7 +716,7 @@ BEGIN
   RETURN jsonb_build_object('ok', true, 'id', v_id);
 END $$;
 
--- Idempotente: todos los clientes la llaman cuando termina la canciÃ³n; solo avanza una vez.
+-- Idempotente: todos los clientes la llaman cuando termina la canción; solo avanza una vez.
 CREATE OR REPLACE FUNCTION public.music_advance(p_expected uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 BEGIN
@@ -734,7 +734,7 @@ BEGIN
   RETURN jsonb_build_object('ok', true, 'advanced', true);
 END $$;
 
--- Saltar: 3 votos (mayorÃ­a de 6) o lo pide quien agregÃ³ la canciÃ³n.
+-- Saltar: 3 votos (mayoría de 6) o lo pide quien agregó la canción.
 CREATE OR REPLACE FUNCTION public.music_vote_skip(p_id uuid)
 RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
 DECLARE
@@ -770,8 +770,8 @@ GRANT EXECUTE ON FUNCTION public.music_vote_skip(uuid) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.music_state() TO authenticated;
 
 -- ---------------------------------------------------------------------
--- 4. ESTADÃSTICAS DEL GRUPO (/stats)
---    Zona horaria fija: America/Guayaquil. CÃ¡mbiala aquÃ­ si el grupo estÃ¡ en otra.
+-- 4. ESTADÍSTICAS DEL GRUPO (/stats)
+--    Zona horaria fija: America/Guayaquil. Cámbiala aquí si el grupo está en otra.
 --    La actividad cuenta mensajes, publicaciones y jugadas de Plinko/Crash (game_history).
 -- ---------------------------------------------------------------------
 CREATE OR REPLACE FUNCTION public.stats_overview()
@@ -845,7 +845,7 @@ REVOKE ALL ON FUNCTION public.stats_overview() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION public.stats_overview() TO authenticated;
 
 -- ---------------------------------------------------------------------
--- 5. REALTIME para la cola de mÃºsica
+-- 5. REALTIME para la cola de música
 -- ---------------------------------------------------------------------
 DO $$
 DECLARE t text;
@@ -1310,3 +1310,111 @@ GRANT EXECUTE ON FUNCTION public.adv_use_potion() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.adv_fish_cast(text, text) TO authenticated;
 GRANT EXECUTE ON FUNCTION public.adv_fish_hook() TO authenticated;
 GRANT EXECUTE ON FUNCTION public.adv_fish_reel(numeric) TO authenticated;
+
+
+-- =====================================================================
+-- ENTREGA 1 · FIXES  (idempotente, ejecutar completo en el SQL Editor)
+--   1. Tienda: corrige el mojibake de shop_items (UTF-8 correcto)
+--   2. Perfil: permisos de columnas que usa /settings (bio, description)
+--   3. Likes persistentes de la Galería (memory_likes + Realtime)
+--   4. Storage: buckets avatars, memes y cine-videos con RLS por carpeta {uid}/
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- 1. TIENDA · reparar textos (UPDATE por id, sin tocar precios ni inventario)
+-- ---------------------------------------------------------------------
+UPDATE public.shop_items AS s SET
+  name = v.name, description = v.description, payload = v.payload::jsonb
+FROM (VALUES
+  ('title_apostador', 'Título: El Apostador 🎰',    'Aparece junto a tu nombre en el chat',       '{"text":"El Apostador 🎰"}'),
+  ('title_minero',    'Título: Minero Supremo ⛏️',  'Para los que viven en la cueva',             '{"text":"Minero Supremo ⛏️"}'),
+  ('title_cinefilo',  'Título: Cinéfilo 🍿',        'Nunca se pierde una función',                '{"text":"Cinéfilo 🍿"}'),
+  ('color_oro',       'Nombre dorado',              'Tu nombre brilla en dorado',                 '{"color":"#FFD700"}'),
+  ('color_neon',      'Nombre verde neón',          'Imposible no verte en el chat',              '{"color":"#39FF14"}'),
+  ('color_ps_blue',   'Nombre azul PlayStation',    'El azul de siempre',                         '{"color":"#0070D1"}'),
+  ('cosm_marco_ps',   'Marco de perfil PlayStation','Marco con los símbolos △ ○ ✕ □',            '{"frame":"ps"}'),
+  ('cosm_aura_fuego', 'Aura de fuego 🔥',           'Tu avatar arde (cosmético)',                 '{"aura":"fire"}'),
+  ('boost_xp_x2_30',  'XP x2 (30 min)',             'Duplica la XP que ganas durante 30 minutos', '{"mult":2,"minutes":30}'),
+  ('boost_xp_x3_15',  'XP x3 (15 min)',             'Triple XP durante 15 minutos',               '{"mult":3,"minutes":15}'),
+  ('role_parentesis', 'Rol: El del paréntesis',     'Rol cómico oficial del grupo',               '{"role":"El del paréntesis"}'),
+  ('role_cajero',     'Rol: Banquero del grupo 💰', 'Rol cómico: el que siempre presta',          '{"role":"Banquero del grupo"}')
+) AS v(id, name, description, payload)
+WHERE s.id = v.id;
+
+-- Verificación: no debe quedar ningún texto con "Ã", "â" o "ð"
+-- SELECT id, name FROM public.shop_items WHERE name ~ '[ÃâðÂ]' OR description ~ '[ÃâðÂ]';
+
+-- ---------------------------------------------------------------------
+-- 2. PERFIL · /settings guarda "description" y "username", pero solo estaba
+--    permitido actualizar (nickname, avatar_url, bio, last_seen) -> fallaba.
+--    Se añade description y se mantiene username BLOQUEADO (es identidad).
+-- ---------------------------------------------------------------------
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS bio text;
+ALTER TABLE public.profiles ADD COLUMN IF NOT EXISTS description text;
+GRANT UPDATE (nickname, avatar_url, bio, description, last_seen) ON public.profiles TO authenticated;
+
+-- ---------------------------------------------------------------------
+-- 3. LIKES DE GALERÍA
+--    memory_key es TEXT a propósito: sirve para memorias de la BD (uuid::text)
+--    y para las fotos predeterminadas de /public/images (clave "def_1", ...).
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.memory_likes (
+  memory_key text NOT NULL CHECK (char_length(memory_key) BETWEEN 1 AND 200),
+  user_id    uuid NOT NULL REFERENCES public.profiles(id) ON DELETE CASCADE,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  PRIMARY KEY (memory_key, user_id)
+);
+CREATE INDEX IF NOT EXISTS idx_memory_likes_user ON public.memory_likes (user_id);
+
+ALTER TABLE public.memory_likes ENABLE ROW LEVEL SECURITY;
+DROP POLICY IF EXISTS "likes lectura"  ON public.memory_likes;
+DROP POLICY IF EXISTS "likes crear"    ON public.memory_likes;
+DROP POLICY IF EXISTS "likes borrar"   ON public.memory_likes;
+CREATE POLICY "likes lectura" ON public.memory_likes FOR SELECT TO authenticated USING (true);
+CREATE POLICY "likes crear"   ON public.memory_likes FOR INSERT TO authenticated
+  WITH CHECK (user_id = (SELECT auth.uid()));
+CREATE POLICY "likes borrar"  ON public.memory_likes FOR DELETE TO authenticated
+  USING (user_id = (SELECT auth.uid()));
+GRANT SELECT, INSERT, DELETE ON public.memory_likes TO authenticated;
+
+DO $$ BEGIN
+  ALTER PUBLICATION supabase_realtime ADD TABLE public.memory_likes;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+
+-- ---------------------------------------------------------------------
+-- 4. STORAGE  (lectura pública; escribir solo dentro de tu carpeta {uid}/)
+-- ---------------------------------------------------------------------
+INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types) VALUES
+  ('avatars',    'avatars',    true, 5242880,
+     ARRAY['image/jpeg','image/png','image/webp','image/gif']),
+  ('memes',      'memes',      true, 10485760,
+     ARRAY['image/jpeg','image/png','image/webp','image/gif']),
+  -- 50 MB = tope del plan gratuito de Supabase. Súbelo en Dashboard > Storage > Settings si tienes plan Pro.
+  ('cine-videos','cine-videos',true, 52428800,
+     ARRAY['video/mp4','video/webm'])
+ON CONFLICT (id) DO UPDATE SET
+  public = EXCLUDED.public,
+  file_size_limit = EXCLUDED.file_size_limit,
+  allowed_mime_types = EXCLUDED.allowed_mime_types;
+
+DO $$
+DECLARE b text;
+BEGIN
+  FOREACH b IN ARRAY ARRAY['avatars','memes','cine-videos'] LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON storage.objects', b || ' lectura');
+    EXECUTE format('DROP POLICY IF EXISTS %I ON storage.objects', b || ' subida');
+    EXECUTE format('DROP POLICY IF EXISTS %I ON storage.objects', b || ' actualizar');
+    EXECUTE format('DROP POLICY IF EXISTS %I ON storage.objects', b || ' borrado');
+    EXECUTE format('CREATE POLICY %I ON storage.objects FOR SELECT USING (bucket_id = %L)',
+                   b || ' lectura', b);
+    EXECUTE format($f$CREATE POLICY %I ON storage.objects FOR INSERT TO authenticated
+                      WITH CHECK (bucket_id = %L AND (storage.foldername(name))[1] = (SELECT auth.uid())::text)$f$,
+                   b || ' subida', b);
+    EXECUTE format($f$CREATE POLICY %I ON storage.objects FOR UPDATE TO authenticated
+                      USING (bucket_id = %L AND (storage.foldername(name))[1] = (SELECT auth.uid())::text)$f$,
+                   b || ' actualizar', b);
+    EXECUTE format($f$CREATE POLICY %I ON storage.objects FOR DELETE TO authenticated
+                      USING (bucket_id = %L AND (storage.foldername(name))[1] = (SELECT auth.uid())::text)$f$,
+                   b || ' borrado', b);
+  END LOOP;
+END $$;

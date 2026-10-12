@@ -44,6 +44,7 @@ next-env.d.ts
 files/
 files2/
 filesnuevos/
+nuevo/
 *.zip
 
 discord-bot/node_modules
