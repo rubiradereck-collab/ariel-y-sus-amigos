@@ -37,14 +37,48 @@ END $$;
 -- Blindaje explícito en los helpers de billetera y trofeos
 DO $$
 BEGIN
-  IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = '_wallet_credit') THEN
-    REVOKE EXECUTE ON FUNCTION public._wallet_credit(UUID, BIGINT) FROM PUBLIC, anon, authenticated;
-  END IF;
   IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = '_wallet_debit') THEN
     REVOKE EXECUTE ON FUNCTION public._wallet_debit(UUID, BIGINT) FROM PUBLIC, anon, authenticated;
   END IF;
   IF EXISTS (SELECT 1 FROM pg_proc WHERE proname = 'grant_trophy') THEN
     REVOKE EXECUTE ON FUNCTION public.grant_trophy(UUID, TEXT) FROM PUBLIC, anon, authenticated;
+  END IF;
+END $$;
+
+-- Hardening de _wallet_credit con validación de importes positivos y existencia de billetera
+CREATE OR REPLACE FUNCTION public._wallet_credit(p_uid uuid, p_amt bigint) 
+RETURNS bigint
+LANGUAGE plpgsql 
+SECURITY DEFINER 
+SET search_path = public, auth, pg_temp 
+AS $$
+DECLARE 
+  bal bigint;
+BEGIN
+  IF p_amt <= 0 THEN 
+    RAISE EXCEPTION 'invalid_amount'; 
+  END IF;
+  UPDATE public.user_stats 
+  SET coins = coins + p_amt 
+  WHERE user_id = p_uid 
+  RETURNING coins INTO bal;
+  IF NOT FOUND THEN 
+    RAISE EXCEPTION 'wallet_not_found'; 
+  END IF;
+  RETURN bal;
+END $$;
+
+REVOKE EXECUTE ON FUNCTION public._wallet_credit(UUID, BIGINT) FROM PUBLIC, anon, authenticated;
+
+-- Red de seguridad: Restricción para impedir saldos negativos a nivel de base de datos
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'user_stats') THEN
+    BEGIN
+      ALTER TABLE public.user_stats ADD CONSTRAINT coins_nonneg CHECK (coins >= 0) NOT VALID;
+      ALTER TABLE public.user_stats VALIDATE CONSTRAINT coins_nonneg;
+    EXCEPTION WHEN duplicate_object THEN NULL;
+    END;
   END IF;
 END $$;
 
@@ -83,6 +117,40 @@ REVOKE EXECUTE ON FUNCTION public._secure_int(int) FROM PUBLIC, anon, authentica
 -- ------------------------------------------------------------------------------
 -- Índice único: Máximo 1 partida activa por usuario (evita carreras en bj_start)
 CREATE UNIQUE INDEX IF NOT EXISTS bj_one_active ON public.bj_games (user_id) WHERE status = 'playing';
+
+-- Helpers de Blackjack honestamente marcados como STABLE (no immutable)
+CREATE OR REPLACE FUNCTION public._bj_total(h int[]) 
+RETURNS int
+LANGUAGE plpgsql 
+STABLE 
+AS $$
+DECLARE t int := 0; aces int := 0; c int; r int;
+BEGIN
+  FOREACH c IN ARRAY h LOOP
+    r := c % 13;
+    IF r = 0 THEN aces := aces+1; t := t+11;
+    ELSIF r >= 9 THEN t := t+10;
+    ELSE t := t + r + 1; END IF;
+  END LOOP;
+  WHILE t > 21 AND aces > 0 LOOP t := t-10; aces := aces-1; END LOOP;
+  RETURN t;
+END $$;
+
+CREATE OR REPLACE FUNCTION public._bj_view(g public.bj_games, bal bigint) 
+RETURNS jsonb
+LANGUAGE sql 
+STABLE 
+AS $$
+  SELECT jsonb_build_object(
+    'id',g.id,'status',g.status,'bet',g.bet,'doubled',g.doubled,
+    'player',to_jsonb(g.player),'player_total',_bj_total(g.player),
+    'dealer', case when g.status='finished' then to_jsonb(g.dealer) else to_jsonb(g.dealer[1:1]) end,
+    'dealer_total', case when g.status='finished' then _bj_total(g.dealer) end,
+    'dealer_hidden', g.status <> 'finished',
+    'result',g.result,'payout',g.payout,'balance',bal) $$;
+
+REVOKE EXECUTE ON FUNCTION public._bj_total(int[]) FROM PUBLIC, anon, authenticated;
+REVOKE EXECUTE ON FUNCTION public._bj_view(public.bj_games, bigint) FROM PUBLIC, anon, authenticated;
 
 -- RPC para recuperar la partida activa si el usuario recarga la página
 CREATE OR REPLACE FUNCTION public.bj_current() 
