@@ -1,264 +1,236 @@
 'use client'
 
-import { MainLayout } from "@/components/layout/MainLayout"
-import { Headphones, Disc, Upload, FolderHeart, Play, Radio, Music2, ExternalLink } from "lucide-react"
-import { useState, useEffect } from "react"
-import { createClient } from "@/lib/supabase/client"
-import { toast } from "sonner"
+import { useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { toast } from 'sonner'
+import { Headphones, ListMusic, Loader2, Plus, Search, SkipForward, Volume2, VolumeX } from 'lucide-react'
+import { MainLayout } from '@/components/layout/MainLayout'
+import { formatTime, useMusic, type SearchResult } from '@/components/music/MusicProvider'
+
+const SKIP_VOTES_NEEDED = 3
 
 export default function MusicaPage() {
-  const [activeTab, setActiveTab] = useState<'streaming' | 'local'>('streaming')
-  const [localSongs, setLocalSongs] = useState<any[]>([])
-  const [file, setFile] = useState<File | null>(null)
-  const [uploading, setUploading] = useState(false)
-  const supabase = createClient()
+  const {
+    current,
+    queue,
+    elapsed,
+    listening,
+    setListening,
+    volume,
+    setVolume,
+    autoplayBlocked,
+    resume,
+    addTrack,
+    voteSkip,
+    search,
+  } = useMusic()
 
-  useEffect(() => {
-    fetchSongs()
-  }, [])
+  const [input, setInput] = useState('')
+  const [results, setResults] = useState<SearchResult[]>([])
+  const [working, setWorking] = useState<boolean>(false)
+  const [addingId, setAddingId] = useState<string | null>(null)
 
-  const fetchSongs = async () => {
-    const { data } = await supabase.storage.from('musica').list()
-    if (data) {
-      setLocalSongs(data.filter(f => f.name !== '.emptyFolderPlaceholder'))
+  const looksLikeUrl = (s: string) => /^https?:\/\//i.test(s.trim()) || /youtu\.?be/i.test(s)
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    const text = input.trim()
+    if (!text || working) return
+    setWorking(true)
+    try {
+      if (looksLikeUrl(text)) {
+        const ok = await addTrack({ url: text })
+        if (ok) {
+          setInput('')
+          setResults([])
+        }
+      } else {
+        const res = await search(text)
+        if (res === 'no_api_key') {
+          toast.error('El buscador no está configurado. Pega un enlace o agrega YOUTUBE_API_KEY en Vercel.')
+        } else if (res.length === 0) {
+          toast('Sin resultados')
+          setResults([])
+        } else {
+          setResults(res)
+        }
+      }
+    } catch {
+      toast.error('No se pudo completar la búsqueda.')
+    } finally {
+      setWorking(false)
     }
   }
 
-  const handleUpload = async () => {
-    if (!file) {
-      toast.error('Selecciona un archivo de audio primero')
-      return
-    }
-    setUploading(true)
-    const safeName = file.name.replace(/[^a-zA-Z0-9.\-]/g, '_')
-    const { data, error } = await supabase.storage
-      .from('musica')
-      .upload(`${Date.now()}_${safeName}`, file, { cacheControl: '3600', upsert: false })
-    
-    if (error) {
-      toast.error('Error al subir: ' + error.message)
-    } else {
-      toast.success('¡Canción subida con éxito!')
-      setFile(null)
-      fetchSongs()
-    }
-    setUploading(false)
-  }
-
-  const getPublicUrl = (path: string) => {
-    const { data } = supabase.storage.from('musica').getPublicUrl(path)
-    return data.publicUrl
+  const handleAddResult = async (r: SearchResult) => {
+    if (addingId) return
+    setAddingId(r.videoId)
+    await addTrack({ videoId: r.videoId, title: r.title, thumb: r.thumb })
+    setAddingId(null)
   }
 
   return (
     <MainLayout>
-      <div className="w-full max-w-7xl mx-auto px-4 py-8">
-        
-        {/* HEADER */}
-        <header className="mb-8 flex flex-col md:flex-row md:items-center justify-between gap-6">
-          <div>
-            <h1 className="text-4xl md:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 via-green-500 to-teal-500 uppercase tracking-tighter flex items-center gap-4">
-              <Headphones className="w-10 h-10 text-emerald-500" /> Radio del Caos
-            </h1>
-            <p className="text-emerald-200/60 font-medium text-base mt-1">
-              Las playlists elegidas por ustedes y música local del grupo.
-            </p>
-          </div>
+      <div className="mx-auto w-full max-w-4xl px-4 py-8">
+        <h1 className="mb-1 flex items-center gap-3 text-4xl font-black uppercase tracking-tight text-fuchsia-400">
+          <Headphones className="h-9 w-9" /> Jukebox del grupo
+        </h1>
+        <p className="mb-8 font-medium text-zinc-400">
+          Todos escuchan la misma canción al mismo tiempo. La música sigue sonando aunque cambies de página.
+        </p>
 
-          {/* SELECTOR DE PESTAÑAS */}
-          <div className="flex bg-zinc-900 border border-white/10 p-1.5 rounded-2xl gap-2 self-start md:self-auto">
-            <button 
-              onClick={() => setActiveTab('streaming')}
-              className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
-                activeTab === 'streaming' 
-                  ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' 
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Radio className="w-4 h-4" /> Playlists Oficiales
-            </button>
-            <button 
-              onClick={() => setActiveTab('local')}
-              className={`px-6 py-2.5 rounded-xl text-xs font-black uppercase tracking-widest transition-all flex items-center gap-2 ${
-                activeTab === 'local' 
-                  ? 'bg-emerald-500 text-black shadow-lg shadow-emerald-500/20' 
-                  : 'text-zinc-400 hover:text-white'
-              }`}
-            >
-              <Music2 className="w-4 h-4" /> Canciones de los Panas ({localSongs.length})
-            </button>
-          </div>
-        </header>
-
-        {/* CONTENIDO SEGÚN PESTAÑA */}
-        {activeTab === 'streaming' ? (
-          <div className="space-y-8">
-            
-            {/* 1. SPOTIFY PLAYLIST OFICIAL DEL USUARIO */}
-            <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h2 className="text-xl font-black text-white flex items-center gap-2">
-                    <Disc className="w-5 h-5 text-emerald-500" /> Playlist Oficial en Spotify
-                  </h2>
-                  <p className="text-xs text-zinc-400">Tu selección de canciones seleccionada directamente.</p>
-                </div>
-                <span className="text-[10px] font-black uppercase tracking-widest bg-emerald-500/10 text-emerald-400 px-3 py-1 rounded-full border border-emerald-500/20">
-                  Spotify
-                </span>
-              </div>
-              
-              <div className="rounded-2xl overflow-hidden bg-zinc-900 border border-white/5">
-                <iframe 
-                  data-testid="embed-iframe" 
-                  style={{ borderRadius: '12px' }} 
-                  src="https://open.spotify.com/embed/playlist/4pnXzlKEJwkjsB6JmhscTi?utm_source=generator&si=749e1aa8f0a74211&theme=0" 
-                  width="100%" 
-                  height="352" 
-                  frameBorder="0" 
-                  allow="autoplay; clipboard-write; encrypted-media; fullscreen; picture-in-picture" 
-                  loading="lazy"
-                />
-              </div>
-            </div>
-
-            {/* 2. GRID CON YOUTUBE MUSIC Y APPLE MUSIC */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-              
-              {/* YOUTUBE MUSIC */}
-              <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h2 className="text-xl font-black text-white flex items-center gap-2">
-                        <Play className="w-5 h-5 text-red-500" /> YouTube Music
-                      </h2>
-                      <p className="text-xs text-zinc-400">Reproducción directa desde YouTube Music.</p>
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-red-500/10 text-red-400 px-3 py-1 rounded-full border border-red-500/20">
-                      YouTube
-                    </span>
-                  </div>
-                  
-                  <div className="rounded-2xl overflow-hidden bg-zinc-900 border border-white/5 aspect-video">
-                    <iframe 
-                      width="100%" 
-                      height="100%" 
-                      src="https://www.youtube.com/embed/WxaU6nrYaN4" 
-                      title="YouTube Music Player" 
-                      frameBorder="0" 
-                      allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture" 
-                      allowFullScreen 
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* APPLE MUSIC */}
-              <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl flex flex-col justify-between">
-                <div>
-                  <div className="flex items-center justify-between mb-4">
-                    <div>
-                      <h2 className="text-xl font-black text-white flex items-center gap-2">
-                        <ExternalLink className="w-5 h-5 text-pink-500" /> Apple Music (Salsa Romántica)
-                      </h2>
-                      <p className="text-xs text-zinc-400">Salsa romántica para nostálgicos.</p>
-                    </div>
-                    <span className="text-[10px] font-black uppercase tracking-widest bg-pink-500/10 text-pink-400 px-3 py-1 rounded-full border border-pink-500/20">
-                      Apple Music
-                    </span>
-                  </div>
-
-                  <div className="rounded-2xl overflow-hidden bg-zinc-900 border border-white/5">
-                    <iframe 
-                      allow="autoplay *; encrypted-media *; fullscreen *; clipboard-write" 
-                      frameBorder="0" 
-                      height="352" 
-                      style={{ width: '100%', overflow: 'hidden', borderRadius: '12px' }} 
-                      sandbox="allow-forms allow-popups allow-same-origin allow-scripts allow-storage-access-by-user-activation allow-top-navigation-by-user-activation" 
-                      src="https://embed.music.apple.com/es/playlist/salsa-rom%C3%A1ntica-para-nost%C3%A1lgicos/pl.343b8e998a924d24985827b2db873c56" 
-                    />
-                  </div>
-                </div>
-              </div>
-
-            </div>
-
-          </div>
-        ) : (
-          /* PESTAÑA DE MUSICA LOCAL */
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-            
-            <div className="lg:col-span-2 space-y-6">
-              <div className="bg-black/60 backdrop-blur-xl border border-white/10 rounded-3xl p-6 shadow-2xl">
-                <h2 className="text-xl font-black text-white mb-4 flex items-center gap-3">
-                  <Music2 className="w-6 h-6 text-emerald-500" /> Canciones Subidas por los Panas
-                </h2>
-                
-                {localSongs.length === 0 ? (
-                  <div className="text-center py-16 text-zinc-500 font-bold border-2 border-dashed border-white/5 rounded-2xl flex flex-col items-center gap-3">
-                    <Upload className="w-10 h-10 text-zinc-600" />
-                    <span>Aún no hay canciones subidas. Usa el panel de la derecha para subir la primera.</span>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {localSongs.map(song => (
-                      <div key={song.name} className="bg-zinc-900 border border-white/5 p-4 rounded-2xl flex flex-col md:flex-row items-center gap-4 group hover:border-emerald-500/30 transition-colors">
-                        <div className="w-12 h-12 bg-emerald-500/10 rounded-xl flex items-center justify-center flex-shrink-0 group-hover:bg-emerald-500/20 transition-colors">
-                          <Play className="w-5 h-5 text-emerald-400" />
-                        </div>
-                        <div className="flex-1 truncate w-full text-center md:text-left">
-                          <p className="text-white font-bold truncate text-sm">{song.name.replace(/^\d+_/, '')}</p>
-                          <span className="text-[10px] text-zinc-500 font-mono">Archivo de Audio</span>
-                        </div>
-                        <audio controls src={getPublicUrl(song.name)} className="w-full md:w-72 h-10" />
-                      </div>
-                    ))}
-                  </div>
+        {/* Sonando ahora */}
+        <section className="mb-8 overflow-hidden rounded-3xl border border-fuchsia-500/30 bg-gradient-to-br from-fuchsia-950/60 to-black p-5">
+          <h2 className="mb-3 text-xs font-black uppercase tracking-widest text-fuchsia-300/80">Sonando ahora</h2>
+          {current ? (
+            <div className="flex flex-col gap-4 sm:flex-row sm:items-center">
+              {current.thumb && (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img src={current.thumb} alt="" className="h-24 w-24 rounded-2xl object-cover" />
+              )}
+              <div className="min-w-0 flex-1">
+                <p className="truncate text-xl font-black text-white">{current.title}</p>
+                <p className="text-sm text-zinc-400">
+                  Agregada por {current.added_name ?? 'alguien'} ·{' '}
+                  <span className="font-mono text-fuchsia-300">{formatTime(elapsed)}</span>
+                </p>
+                {autoplayBlocked && listening && (
+                  <button
+                    onClick={resume}
+                    className="mt-2 rounded-lg bg-fuchsia-600 px-4 py-2 text-xs font-black uppercase text-white hover:bg-fuchsia-500"
+                  >
+                    ▶ Toca para unirte al sonido
+                  </button>
                 )}
               </div>
-            </div>
-
-            {/* PANEL DE SUBIDA */}
-            <div>
-              <div className="bg-gradient-to-b from-emerald-950/40 to-black/80 backdrop-blur-xl border border-emerald-500/20 rounded-3xl p-6 sticky top-28 shadow-2xl">
-                <h3 className="text-base font-black text-emerald-400 uppercase tracking-widest mb-4 flex items-center gap-2">
-                  <Upload className="w-5 h-5" /> Subir Tu Archivo
-                </h3>
-                <p className="text-zinc-400 mb-6 font-medium text-xs leading-relaxed">
-                  Sube canciones desde tu computadora para que todos en la página puedan escucharlas. Acepta MP3, M4A, WAV.
-                </p>
-                
-                <label className="border-2 border-dashed border-emerald-500/30 rounded-2xl p-8 text-center hover:bg-emerald-500/10 transition-colors cursor-pointer group mb-6 block relative">
-                  <input 
-                    type="file" 
-                    className="hidden" 
-                    accept="audio/*,.mp3,.wav,.m4a,.ogg" 
-                    onChange={e => {
-                      if (e.target.files && e.target.files[0]) {
-                        setFile(e.target.files[0])
-                      }
-                    }} 
-                  />
-                  <Upload className="w-10 h-10 text-emerald-500/50 mx-auto mb-3 group-hover:scale-110 transition-transform group-hover:text-emerald-400" />
-                  <span className="text-xs font-bold text-zinc-300 group-hover:text-emerald-200 block truncate">
-                    {file ? file.name : "Haz clic para elegir archivo"}
-                  </span>
-                </label>
-                
-                <button 
-                  onClick={handleUpload}
-                  disabled={uploading || !file}
-                  className="w-full bg-emerald-500 hover:bg-emerald-400 disabled:bg-zinc-800 disabled:text-zinc-500 text-black font-black px-6 py-4 rounded-xl flex items-center justify-center gap-2 uppercase text-xs tracking-widest transition-all shadow-lg"
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => setListening(!listening)}
+                  aria-label={listening ? 'Silenciar para mí' : 'Escuchar'}
+                  className="rounded-xl border border-white/10 bg-white/5 p-3 text-white hover:bg-white/10"
                 >
-                  {uploading ? 'Subiendo archivo...' : 'Guardar en la nube'}
+                  {listening ? <Volume2 className="h-5 w-5" /> : <VolumeX className="h-5 w-5" />}
+                </button>
+                <input
+                  type="range"
+                  min={0}
+                  max={1}
+                  step={0.05}
+                  value={volume}
+                  onChange={(e) => setVolume(Number(e.target.value))}
+                  aria-label="Volumen"
+                  className="w-28 accent-fuchsia-500"
+                />
+                <button
+                  onClick={() => void voteSkip(current.id)}
+                  disabled={current.my_vote}
+                  className="flex items-center gap-2 rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-black text-white hover:bg-white/10 disabled:opacity-50"
+                >
+                  <SkipForward className="h-4 w-4" /> Saltar {current.votes}/{SKIP_VOTES_NEEDED}
                 </button>
               </div>
             </div>
+          ) : (
+            <p className="font-medium text-zinc-500">Silencio total. Agrega la primera canción 🎶</p>
+          )}
+        </section>
 
-          </div>
-        )}
+        {/* Agregar canciones */}
+        <section className="mb-8">
+          <form onSubmit={handleSubmit} className="flex gap-3">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+              <input
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                placeholder="Busca en YouTube o pega un enlace (YouTube o audio https)"
+                className="w-full rounded-xl border border-white/10 bg-zinc-900 py-3 pl-10 pr-3 text-white outline-none focus:border-fuchsia-500"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={working || !input.trim()}
+              className="flex items-center gap-2 rounded-xl bg-fuchsia-600 px-6 py-3 font-black uppercase text-white transition hover:bg-fuchsia-500 disabled:opacity-50"
+            >
+              {working ? <Loader2 className="h-4 w-4 animate-spin" /> : looksLikeUrl(input) ? <Plus className="h-4 w-4" /> : <Search className="h-4 w-4" />}
+              {looksLikeUrl(input) ? 'Agregar' : 'Buscar'}
+            </button>
+          </form>
 
+          <AnimatePresence>
+            {results.length > 0 && (
+              <motion.ul
+                initial={{ opacity: 0, y: -8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0 }}
+                className="mt-4 grid gap-3 sm:grid-cols-2"
+              >
+                {results.map((r) => (
+                  <li key={r.videoId} className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/50 p-3">
+                    {r.thumb && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={r.thumb} alt="" className="h-14 w-20 rounded-lg object-cover" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="line-clamp-2 text-sm font-bold text-white">{r.title}</p>
+                      <p className="truncate text-xs text-zinc-500">{r.channel}</p>
+                    </div>
+                    <button
+                      onClick={() => void handleAddResult(r)}
+                      disabled={addingId !== null}
+                      aria-label={`Agregar ${r.title}`}
+                      className="rounded-xl bg-fuchsia-600 p-2 text-white hover:bg-fuchsia-500 disabled:opacity-50"
+                    >
+                      {addingId === r.videoId ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}
+                    </button>
+                  </li>
+                ))}
+              </motion.ul>
+            )}
+          </AnimatePresence>
+        </section>
+
+        {/* Cola */}
+        <section>
+          <h2 className="mb-3 flex items-center gap-2 text-sm font-black uppercase tracking-widest text-zinc-400">
+            <ListMusic className="h-4 w-4" /> En cola ({queue.length})
+          </h2>
+          {queue.length === 0 ? (
+            <p className="font-medium text-zinc-500">La cola está vacía.</p>
+          ) : (
+            <ul className="space-y-3">
+              <AnimatePresence initial={false}>
+                {queue.map((q, i) => (
+                  <motion.li
+                    key={q.id}
+                    layout
+                    initial={{ opacity: 0, x: -16 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    exit={{ opacity: 0, x: 16 }}
+                    className="flex items-center gap-3 rounded-2xl border border-white/10 bg-black/50 p-3"
+                  >
+                    <span className="w-6 text-center font-black text-zinc-600">{i + 1}</span>
+                    {q.thumb && (
+                      // eslint-disable-next-line @next/next/no-img-element
+                      <img src={q.thumb} alt="" className="h-12 w-16 rounded-lg object-cover" />
+                    )}
+                    <div className="min-w-0 flex-1">
+                      <p className="truncate font-bold text-white">{q.title}</p>
+                      <p className="text-xs text-zinc-500">por {q.added_name ?? 'alguien'}</p>
+                    </div>
+                    <button
+                      onClick={() => void voteSkip(q.id)}
+                      disabled={q.my_vote}
+                      className="flex items-center gap-1 rounded-lg border border-white/10 bg-white/5 px-3 py-2 text-xs font-black text-zinc-300 hover:bg-white/10 disabled:opacity-50"
+                    >
+                      <SkipForward className="h-3.5 w-3.5" /> {q.votes}/{SKIP_VOTES_NEEDED}
+                    </button>
+                  </motion.li>
+                ))}
+              </AnimatePresence>
+            </ul>
+          )}
+        </section>
       </div>
     </MainLayout>
   )

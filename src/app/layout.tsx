@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
+import { MusicProvider } from "@/components/music/MusicProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -39,9 +40,11 @@ export default function RootLayout({
           "antialiased min-h-screen bg-background text-foreground selection:bg-primary/30"
         )}
       >
-        <div className="relative flex min-h-screen flex-col">
-          {children}
-        </div>
+        <MusicProvider>
+          <div className="relative flex min-h-screen flex-col">
+            {children}
+          </div>
+        </MusicProvider>
       </body>
     </html>
   );
