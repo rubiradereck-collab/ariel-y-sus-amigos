@@ -98,6 +98,10 @@ BEGIN
 END;
 $$;
 
+-- Revocar ejecución directa a clientes. Solo ejecutable por triggers o RPCs de servidor
+REVOKE EXECUTE ON FUNCTION public.grant_trophy(UUID, TEXT) FROM PUBLIC, anon, authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.user_achievements FROM anon, authenticated;
+
 -- 4. Semilla de Trofeos PS5 Temáticos
 INSERT INTO public.achievements (id, title, description, category, grade, xp_reward)
 VALUES
