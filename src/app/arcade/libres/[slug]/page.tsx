@@ -27,7 +27,7 @@ export default function GameSlugPage({ params }: PageProps) {
   return (
     <Suspense
       fallback={
-        <div className="min-h-screen bg-[#14070f] flex items-center justify-center text-[#ff4d7a] font-bold text-sm">
+        <div className="min-h-screen bg-black flex items-center justify-center text-zinc-400 font-bold text-sm">
           Cargando juego...
         </div>
       }

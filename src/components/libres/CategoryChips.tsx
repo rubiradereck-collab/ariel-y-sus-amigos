@@ -32,7 +32,7 @@ export function CategoryChips({
   counts,
 }: CategoryChipsProps) {
   return (
-    <div className="flex items-center gap-2 overflow-x-auto pb-2 scrollbar-none no-scrollbar">
+    <div className="flex items-center gap-2 overflow-x-auto pb-1 scrollbar-none no-scrollbar">
       {CATEGORIES.map((cat) => {
         const isActive = currentCategory === cat.id;
         const count = counts[cat.id] ?? 0;
@@ -41,19 +41,19 @@ export function CategoryChips({
           <button
             key={cat.id}
             onClick={() => onSelectCategory(cat.id)}
-            className={`flex items-center gap-2 px-4 py-2 rounded-full text-xs sm:text-sm font-semibold transition-all duration-200 whitespace-nowrap cursor-pointer select-none ${
+            className={`flex items-center gap-2 px-3.5 py-1.5 rounded-xl text-xs font-bold transition-all cursor-pointer whitespace-nowrap select-none ${
               isActive
-                ? 'bg-gradient-to-r from-[#ff4d7a] to-[#e8365d] text-white shadow-[0_0_15px_rgba(255,77,122,0.4)] scale-[1.02]'
-                : 'bg-white/[0.05] hover:bg-white/[0.1] text-[#b7a3ad] hover:text-[#f5eef2] border border-white/5 hover:border-white/10'
+                ? 'bg-white text-black shadow-md scale-[1.02]'
+                : 'bg-zinc-900/70 hover:bg-zinc-800 text-zinc-400 hover:text-white border border-white/5'
             }`}
           >
             {cat.icon}
             <span>{cat.label}</span>
             <span
-              className={`px-1.5 py-0.5 rounded-full text-[10px] font-bold ${
+              className={`px-1.5 py-0.2 rounded-full text-[10px] font-bold ${
                 isActive
-                  ? 'bg-black/30 text-white'
-                  : 'bg-white/10 text-[#b7a3ad]'
+                  ? 'bg-black/15 text-black'
+                  : 'bg-white/10 text-zinc-400'
               }`}
             >
               {count}

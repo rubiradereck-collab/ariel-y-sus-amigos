@@ -1,0 +1,45 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
+  <defs>
+    <linearGradient id="bgRul" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#180b24"/>
+      <stop offset="60%" stop-color="#0e0717"/>
+      <stop offset="100%" stop-color="#040208"/>
+    </linearGradient>
+    <filter id="glowRul" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="640" height="400" fill="url(#bgRul)"/>
+
+  <!-- Ruleta Estilizada -->
+  <g transform="translate(320, 200)" filter="url(#glowRul)">
+    <!-- Aro exterior -->
+    <circle cx="0" cy="0" r="110" fill="none" stroke="rgba(168,85,247,0.3)" stroke-width="12"/>
+    <circle cx="0" cy="0" r="98" fill="#140920" stroke="#a855f7" stroke-width="4"/>
+
+    <!-- Gajos de colores -->
+    <path d="M 0 0 L 0 -95 A 95 95 0 0 1 82 -48 Z" fill="#ec4899" opacity="0.85"/>
+    <path d="M 0 0 L 82 -48 A 95 95 0 0 1 82 48 Z" fill="#8b5cf6" opacity="0.85"/>
+    <path d="M 0 0 L 82 48 A 95 95 0 0 1 0 95 Z" fill="#3b82f6" opacity="0.85"/>
+    <path d="M 0 0 L 0 95 A 95 95 0 0 1 -82 48 Z" fill="#10b981" opacity="0.85"/>
+    <path d="M 0 0 L -82 48 A 95 95 0 0 1 -82 -48 Z" fill="#f59e0b" opacity="0.85"/>
+    <path d="M 0 0 L -82 -48 A 95 95 0 0 1 0 -95 Z" fill="#ef4444" opacity="0.85"/>
+
+    <!-- Centro plateado -->
+    <circle cx="0" cy="0" r="24" fill="#1e132c" stroke="#f3e8ff" stroke-width="3"/>
+    <circle cx="0" cy="0" r="10" fill="#a855f7"/>
+
+    <!-- Flecha indicadora -->
+    <polygon points="0,-125 -12,-100 12,-100" fill="#ffffff" filter="url(#glowRul)"/>
+  </g>
+
+  <!-- Tag -->
+  <g transform="translate(40, 50)">
+    <rect width="130" height="34" rx="17" fill="rgba(168,85,247,0.15)" stroke="#a855f7" stroke-width="1.5"/>
+    <text x="65" y="22" font-family="system-ui, sans-serif" font-size="12" font-weight="900" fill="#c084fc" text-anchor="middle" letter-spacing="1">LUCKY WHEEL</text>
+  </g>
+</svg>

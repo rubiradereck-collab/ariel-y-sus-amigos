@@ -88,12 +88,12 @@ export function GameFrame({ game, initialFavorite }: GameFrameProps) {
   return (
     <div className="flex flex-col gap-5 w-full">
       {/* Barra superior de controles */}
-      <div className="flex flex-wrap items-center justify-between gap-3 bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[20px] p-4 shadow-xl">
+      <div className="flex flex-wrap items-center justify-between gap-3 bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl">
         {/* Volver */}
         <div className="flex items-center gap-3">
           <Link
             href="/arcade/libres"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs font-bold text-[#b7a3ad] hover:text-white border border-white/5 transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-xs font-bold text-zinc-300 hover:text-white border border-white/10 transition-all"
           >
             <ArrowLeft className="w-4 h-4" />
             <span>Volver a Juegos Libres</span>
@@ -112,7 +112,7 @@ export function GameFrame({ game, initialFavorite }: GameFrameProps) {
               className={`p-2 rounded-xl border transition-all cursor-pointer ${
                 isFav
                   ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400'
-                  : 'bg-white/[0.05] hover:bg-white/[0.1] border-white/10 text-[#b7a3ad] hover:text-white'
+                  : 'bg-zinc-800/80 hover:bg-zinc-700 border-white/10 text-zinc-300 hover:text-white'
               }`}
               title={isFav ? 'Quitar de favoritos' : 'Añadir a favoritos'}
             >
@@ -122,7 +122,7 @@ export function GameFrame({ game, initialFavorite }: GameFrameProps) {
 
           <button
             onClick={handleReload}
-            className="p-2 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] border border-white/10 text-[#b7a3ad] hover:text-white transition-all cursor-pointer"
+            className="p-2 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 border border-white/10 text-zinc-300 hover:text-white transition-all cursor-pointer"
             title="Reiniciar juego"
           >
             <RotateCcw className="w-4 h-4" />
@@ -130,7 +130,7 @@ export function GameFrame({ game, initialFavorite }: GameFrameProps) {
 
           <button
             onClick={handleToggleFullscreen}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-xl bg-gradient-to-r from-[#ff4d7a] to-[#e8365d] text-white text-xs font-bold shadow-[0_0_15px_rgba(255,77,122,0.4)] hover:brightness-110 transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-xl bg-white hover:bg-zinc-200 text-black text-xs font-bold shadow-lg transition-all cursor-pointer"
             title="Pantalla completa"
           >
             {isFullscreen ? (
@@ -151,7 +151,7 @@ export function GameFrame({ game, initialFavorite }: GameFrameProps) {
       {/* Contenedor Iframe del Juego */}
       <div
         ref={containerRef}
-        className={`relative w-full rounded-[24px] overflow-hidden border border-white/10 bg-[#0d030c] shadow-2xl flex items-center justify-center ${
+        className={`relative w-full rounded-2xl overflow-hidden border border-white/10 bg-black/90 shadow-2xl flex items-center justify-center ${
           isFullscreen
             ? 'h-screen w-screen rounded-none border-none'
             : 'h-[620px] max-h-[80vh]'
@@ -170,22 +170,22 @@ export function GameFrame({ game, initialFavorite }: GameFrameProps) {
       {/* Metadatos y Licencias */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {/* Info y descripción */}
-        <div className="md:col-span-2 p-5 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[20px] flex flex-col gap-3">
+        <div className="md:col-span-2 p-5 bg-zinc-900/50 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col gap-3">
           <div className="flex items-center gap-2 text-white font-bold text-sm">
-            <Info className="w-4 h-4 text-[#ff4d7a]" />
+            <Info className="w-4 h-4 text-cyan-400" />
             <span>Sobre este juego</span>
           </div>
-          <p className="text-xs sm:text-sm text-[#b7a3ad] leading-relaxed">
+          <p className="text-xs sm:text-sm text-zinc-400 leading-relaxed">
             {game.description}
           </p>
 
-          <div className="flex flex-wrap items-center gap-3 pt-2 text-xs text-[#b7a3ad]">
+          <div className="flex flex-wrap items-center gap-3 pt-2 text-xs text-zinc-400">
             <span className="flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
               <span>Categoría:</span>
               <strong className="text-white capitalize">{game.category}</strong>
             </span>
             <span className="flex items-center gap-1 bg-white/5 px-2.5 py-1 rounded-lg border border-white/5">
-              <Eye className="w-3.5 h-3.5 text-[#38bdf8]" />
+              <Eye className="w-3.5 h-3.5 text-cyan-400" />
               <span>Partidas:</span>
               <strong className="text-white">{game.plays_count}</strong>
             </span>
@@ -197,13 +197,13 @@ export function GameFrame({ game, initialFavorite }: GameFrameProps) {
         </div>
 
         {/* Autoría y Sandbox Legal */}
-        <div className="p-5 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[20px] flex flex-col justify-between gap-3">
+        <div className="p-5 bg-zinc-900/50 backdrop-blur-xl border border-white/10 rounded-2xl flex flex-col justify-between gap-3">
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 text-emerald-400 font-bold text-sm">
               <ShieldCheck className="w-4 h-4" />
               <span>Licencia Verificada</span>
             </div>
-            <div className="text-xs text-[#b7a3ad] space-y-1">
+            <div className="text-xs text-zinc-400 space-y-1">
               <p>
                 Autor: <span className="text-white font-medium">{game.author}</span>
               </p>
@@ -216,7 +216,7 @@ export function GameFrame({ game, initialFavorite }: GameFrameProps) {
             </div>
           </div>
 
-          <div className="pt-3 border-t border-white/5 text-[11px] text-white/40 leading-tight">
+          <div className="pt-3 border-t border-white/5 text-[11px] text-zinc-500 leading-tight">
             Iframe aislado con sandbox estricto. Sin tracking comercial ni consumo de recursos en segundo plano.
           </div>
         </div>

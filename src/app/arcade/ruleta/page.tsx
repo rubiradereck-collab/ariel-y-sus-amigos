@@ -67,10 +67,10 @@ export default function RoulettePage() {
     <ArcadeLayout>
       <div className="flex flex-col gap-6 w-full">
         {/* Barra superior */}
-        <div className="flex items-center justify-between bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[20px] p-4 shadow-xl">
+        <div className="flex items-center justify-between bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl">
           <Link
             href="/arcade"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs font-bold text-[#b7a3ad] hover:text-white border border-white/5 transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-xs font-bold text-zinc-300 hover:text-white border border-white/10 transition-all"
           >
             <ArrowLeft className="h-4 w-4" /> Volver al Arcade
           </Link>
@@ -84,19 +84,19 @@ export default function RoulettePage() {
 
         <div className="flex flex-col lg:flex-row gap-8 items-start">
           {/* Panel Izquierdo: Configuración */}
-          <div className="w-full lg:w-1/3 flex flex-col gap-5 bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[24px] p-6 shadow-2xl">
+          <div className="w-full lg:w-1/3 flex flex-col gap-5 bg-zinc-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 shadow-2xl">
             <div>
-              <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-pink-400 to-[#ff4d7a] drop-shadow">
+              <h1 className="text-2xl sm:text-3xl font-black uppercase tracking-wider text-transparent bg-clip-text bg-gradient-to-r from-purple-400 via-indigo-300 to-cyan-400 drop-shadow">
                 RULETA DEL DESTINO
               </h1>
-              <p className="text-xs text-[#b7a3ad] mt-1">
+              <p className="text-xs text-zinc-400 mt-1">
                 Configura opciones y deja que el azar decida el próximo reto o turno.
               </p>
             </div>
 
             <div>
               <h3 className="text-white font-bold text-xs uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Users className="w-4 h-4 text-[#ff4d7a]" /> Opciones ({options.length})
+                <Users className="w-4 h-4 text-purple-400" /> Opciones ({options.length})
               </h3>
 
               <form onSubmit={addOption} className="flex gap-2 mb-3">
@@ -105,11 +105,11 @@ export default function RoulettePage() {
                   value={newOption}
                   onChange={(e) => setNewOption(e.target.value)}
                   placeholder="Añadir opción..."
-                  className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white outline-none focus:border-[#ff4d7a] transition-all"
+                  className="flex-1 bg-black/40 border border-white/10 rounded-xl px-3.5 py-2 text-xs text-white outline-none focus:border-purple-400 transition-all"
                 />
                 <button
                   type="submit"
-                  className="bg-gradient-to-r from-[#ff4d7a] to-[#e8365d] text-white p-2 rounded-xl transition-transform hover:scale-105 cursor-pointer shadow-md"
+                  className="bg-white hover:bg-zinc-200 text-black p-2 rounded-xl transition-transform hover:scale-105 cursor-pointer shadow-md"
                 >
                   <Plus className="w-5 h-5" />
                 </button>
@@ -119,12 +119,12 @@ export default function RoulettePage() {
                 {options.map((opt, i) => (
                   <li
                     key={i}
-                    className="flex justify-between items-center bg-white/[0.03] border border-white/5 px-3.5 py-2.5 rounded-xl text-xs text-white"
+                    className="flex justify-between items-center bg-zinc-800/40 border border-white/5 px-3.5 py-2.5 rounded-xl text-xs text-white"
                   >
                     <span className="font-bold truncate max-w-[180px]">{opt}</span>
                     <button
                       onClick={() => removeOption(i)}
-                      className="text-[#b7a3ad] hover:text-red-400 transition-colors p-1"
+                      className="text-zinc-400 hover:text-red-400 transition-colors p-1"
                     >
                       <X className="w-4 h-4" />
                     </button>
@@ -135,17 +135,17 @@ export default function RoulettePage() {
           </div>
 
           {/* Panel Derecho: Ruleta Visual */}
-          <div className="w-full lg:w-2/3 flex flex-col items-center justify-center bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[24px] p-6 sm:p-10 shadow-2xl">
+          <div className="w-full lg:w-2/3 flex flex-col items-center justify-center bg-zinc-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sm:p-10 shadow-2xl">
             <div className="relative w-72 h-72 sm:w-96 sm:h-96 md:w-[440px] md:h-[440px] mb-8">
               {/* Puntero Superior */}
               <div
-                className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 w-8 h-10 bg-white shadow-[0_0_15px_#ff4d7a]"
+                className="absolute -top-3 left-1/2 -translate-x-1/2 z-20 w-8 h-10 bg-white shadow-[0_0_15px_rgba(255,255,255,0.8)]"
                 style={{ clipPath: 'polygon(50% 100%, 0 0, 100% 0)' }}
               />
 
               {/* Círculo de la ruleta */}
               <div
-                className="w-full h-full rounded-full border-8 border-white/10 shadow-[0_0_50px_rgba(255,77,122,0.3)] overflow-hidden relative"
+                className="w-full h-full rounded-full border-8 border-white/10 shadow-[0_0_50px_rgba(99,102,241,0.25)] overflow-hidden relative"
                 style={{
                   transform: `rotate(${rotation}deg)`,
                   transition: 'transform 5s cubic-bezier(0.2, 0.8, 0.1, 1)',
@@ -154,7 +154,7 @@ export default function RoulettePage() {
                 {options.map((opt, index) => {
                   const angle = 360 / options.length;
                   const skewY = 90 - angle;
-                  const colors = ['#ec4899', '#f43f5e', '#8b5cf6', '#3b82f6', '#10b981', '#f59e0b'];
+                  const colors = ['#6366f1', '#8b5cf6', '#3b82f6', '#06b6d4', '#10b981', '#f59e0b'];
                   const bgColor = colors[index % colors.length];
 
                   return (
@@ -185,8 +185,8 @@ export default function RoulettePage() {
               </div>
 
               {/* Centro de la ruleta */}
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-[#14070f] rounded-full border-4 border-white/20 z-10 flex items-center justify-center shadow-2xl">
-                <div className="w-5 h-5 bg-[#ff4d7a] rounded-full animate-pulse shadow-[0_0_10px_#ff4d7a]" />
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-14 h-14 bg-zinc-950 rounded-full border-4 border-white/20 z-10 flex items-center justify-center shadow-2xl">
+                <div className="w-5 h-5 bg-cyan-400 rounded-full animate-pulse shadow-[0_0_10px_#22d3ee]" />
               </div>
             </div>
 
@@ -194,7 +194,7 @@ export default function RoulettePage() {
               <motion.div
                 initial={{ scale: 0.8, opacity: 0 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="bg-gradient-to-r from-[#ff4d7a] to-[#7c3aed] px-8 py-5 rounded-[20px] border border-white/30 text-center shadow-[0_0_40px_rgba(255,77,122,0.6)]"
+                className="bg-gradient-to-r from-indigo-600 to-purple-600 px-8 py-5 rounded-2xl border border-white/30 text-center shadow-[0_0_40px_rgba(99,102,241,0.5)]"
               >
                 <h2 className="text-white/80 uppercase tracking-widest text-xs font-bold mb-1">
                   El resultado es:
@@ -211,7 +211,7 @@ export default function RoulettePage() {
               <button
                 onClick={spin}
                 disabled={isSpinning}
-                className="bg-gradient-to-r from-[#ff4d7a] to-[#e8365d] hover:brightness-110 hover:scale-105 active:scale-95 transition-all text-white px-10 py-4 rounded-full font-black uppercase tracking-wider text-base shadow-[0_0_30px_rgba(255,77,122,0.5)] disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-3 cursor-pointer"
+                className="bg-white hover:bg-zinc-200 hover:scale-105 active:scale-95 transition-all text-black px-10 py-4 rounded-full font-black uppercase tracking-wider text-base shadow-[0_0_30px_rgba(255,255,255,0.25)] disabled:opacity-50 disabled:hover:scale-100 flex items-center gap-3 cursor-pointer"
               >
                 {isSpinning ? <RotateCw className="w-5 h-5 animate-spin" /> : <Dices className="w-5 h-5" />}
                 <span>{isSpinning ? 'GIRANDO...' : 'GIRAR LA RULETA'}</span>

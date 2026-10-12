@@ -118,10 +118,10 @@ export default function FNAFMinigame() {
     <ArcadeLayout>
       <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
         {/* Barra superior */}
-        <div className="flex items-center justify-between bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[20px] p-4 shadow-xl">
+        <div className="flex items-center justify-between bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl">
           <Link
             href="/arcade"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs font-bold text-[#b7a3ad] hover:text-white border border-white/5 transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-xs font-bold text-zinc-300 hover:text-white border border-white/10 transition-all"
           >
             <ArrowLeft className="h-4 w-4" /> Volver al Arcade
           </Link>
@@ -135,10 +135,10 @@ export default function FNAFMinigame() {
 
         {/* Título */}
         <div className="text-center py-2">
-          <h1 className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-[#ff4d7a] uppercase tracking-wider drop-shadow-[0_0_20px_rgba(239,68,68,0.5)]">
+          <h1 className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-red-500 via-rose-400 to-amber-400 uppercase tracking-wider drop-shadow-[0_0_20px_rgba(239,68,68,0.5)]">
             FIVE NIGHTS AT ARCADE
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-[#b7a3ad]">
+          <p className="mt-1 text-xs sm:text-sm text-zinc-400">
             Cierra las puertas cuando los sensores marquen peligro. Administra tu energía hasta las 6 AM.
           </p>
         </div>
@@ -306,9 +306,9 @@ export default function FNAFMinigame() {
                     </ul>
                     <button
                       onClick={startGame}
-                      className="w-full bg-gradient-to-r from-[#ff4d7a] to-[#e8365d] hover:brightness-110 text-white font-black px-8 py-3.5 rounded-full flex items-center justify-center gap-2 uppercase tracking-wider text-xs sm:text-sm shadow-[0_0_25px_rgba(255,77,122,0.5)] transition-all cursor-pointer"
+                      className="w-full bg-white hover:bg-zinc-200 text-black font-black px-8 py-3.5 rounded-full flex items-center justify-center gap-2 uppercase tracking-wider text-xs sm:text-sm shadow-xl transition-all cursor-pointer"
                     >
-                      <Play className="w-4 h-4 fill-white" /> INICIAR TURNO
+                      <Play className="w-4 h-4 fill-black" /> INICIAR TURNO
                     </button>
                   </div>
                 )}

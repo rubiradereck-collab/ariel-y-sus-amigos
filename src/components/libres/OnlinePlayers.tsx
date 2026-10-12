@@ -63,8 +63,8 @@ export function OnlinePlayers() {
     <div className="flex flex-col gap-3 p-4 bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[20px]">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
-          <Users className="w-4 h-4 text-[#38bdf8]" />
-          <h4 className="text-xs font-bold text-[#f5eef2] uppercase tracking-wider">
+          <Users className="w-4 h-4 text-cyan-400" />
+          <h4 className="text-xs font-bold text-white uppercase tracking-wider">
             Jugadores En Línea
           </h4>
         </div>
@@ -81,7 +81,7 @@ export function OnlinePlayers() {
             className="flex items-center justify-between gap-2 p-2 rounded-xl bg-white/[0.02] border border-white/5"
           >
             <div className="flex items-center gap-2 min-w-0">
-              <div className="relative w-7 h-7 rounded-full bg-gradient-to-tr from-[#ff4d7a] to-[#7c3aed] flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-sm">
+              <div className="relative w-7 h-7 rounded-full bg-gradient-to-tr from-blue-600 to-indigo-600 flex items-center justify-center font-bold text-white text-xs shrink-0 shadow-sm">
                 {p.avatar_url ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
@@ -92,15 +92,15 @@ export function OnlinePlayers() {
                 ) : (
                   p.username.charAt(0).toUpperCase()
                 )}
-                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-[#14070f]" />
+                <span className="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-emerald-400 ring-2 ring-black" />
               </div>
 
               <div className="min-w-0">
-                <span className="text-xs font-semibold text-[#f5eef2] truncate block">
+                <span className="text-xs font-semibold text-white truncate block">
                   {p.username}
                 </span>
                 {p.game ? (
-                  <span className="text-[10px] text-[#ff8aa6] truncate block font-medium">
+                  <span className="text-[10px] text-cyan-400 truncate block font-medium">
                     🎮 {p.game}
                   </span>
                 ) : (

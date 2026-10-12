@@ -14,7 +14,7 @@ export default function TicTacToePvPGamePage() {
   return (
     <Suspense
       fallback={
-        <div className="flex min-h-screen items-center justify-center bg-[#14070f] text-[#ff4d7a] font-bold">
+        <div className="flex min-h-screen items-center justify-center bg-black text-zinc-400 font-bold">
           Cargando partida...
         </div>
       }
@@ -117,14 +117,14 @@ function TicTacToePvPContent() {
     <ArcadeLayout>
       <div className="flex flex-col gap-6 w-full max-w-2xl mx-auto">
         {/* Barra superior */}
-        <div className="flex items-center justify-between bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[20px] p-4 shadow-xl">
+        <div className="flex items-center justify-between bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl">
           <Link
             href="/arcade/tictactoe"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs font-bold text-[#b7a3ad] hover:text-white border border-white/5 transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-xs font-bold text-zinc-300 hover:text-white border border-white/10 transition-all"
           >
             <ArrowLeft className="h-4 w-4" /> Volver al Lobby
           </Link>
-          <span className="text-xs text-[#b7a3ad] font-mono">
+          <span className="text-xs text-zinc-400 font-mono">
             SALA #{gameId.slice(0, 8)}
           </span>
         </div>
@@ -137,15 +137,15 @@ function TicTacToePvPContent() {
         </div>
 
         {game && (
-          <div className="rounded-[24px] border border-white/10 bg-white/[0.04] p-6 shadow-2xl backdrop-blur-xl">
+          <div className="rounded-2xl border border-white/10 bg-zinc-900/50 p-6 shadow-2xl backdrop-blur-xl">
             {/* Estado de la Partida */}
             {game.status === 'waiting' && (
               <div className="py-8 text-center space-y-3">
-                <div className="mx-auto flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-[#ff4d7a]/20 text-[#ff8aa6]">
+                <div className="mx-auto flex h-14 w-14 animate-pulse items-center justify-center rounded-2xl bg-indigo-500/20 text-indigo-300">
                   <Users className="h-7 w-7" />
                 </div>
-                <h2 className="text-lg font-black text-[#ff8aa6]">Esperando a tu oponente…</h2>
-                <p className="text-xs text-[#b7a3ad]">
+                <h2 className="text-lg font-black text-white">Esperando a tu oponente…</h2>
+                <p className="text-xs text-zinc-400">
                   Comparte el enlace de esta sala con tu amigo para que se una a jugar.
                 </p>
               </div>
@@ -154,10 +154,10 @@ function TicTacToePvPContent() {
             {game.status === 'playing' && (
               <div className="mb-6 flex items-center justify-between rounded-2xl border border-white/10 bg-black/40 p-4">
                 <div className="flex items-center gap-2">
-                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-[#ff4d7a]/20 text-sm font-black text-[#ff8aa6]">
+                  <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-indigo-500/20 text-sm font-black text-indigo-300">
                     X
                   </span>
-                  <span className="text-xs font-bold text-[#f5eef2]">
+                  <span className="text-xs font-bold text-white">
                     {isHost ? 'Tú (Host)' : 'Rival (Host)'}
                   </span>
                 </div>
@@ -167,7 +167,7 @@ function TicTacToePvPContent() {
                 </div>
 
                 <div className="flex items-center gap-2">
-                  <span className="text-xs font-bold text-[#f5eef2]">
+                  <span className="text-xs font-bold text-white">
                     {isGuest ? 'Tú (Rival)' : 'Rival'}
                   </span>
                   <span className="flex h-8 w-8 items-center justify-center rounded-xl bg-cyan-500/20 text-sm font-black text-cyan-400">

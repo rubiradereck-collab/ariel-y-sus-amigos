@@ -1,0 +1,40 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
+  <defs>
+    <linearGradient id="bgAdivina" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1f1012"/>
+      <stop offset="60%" stop-color="#12090b"/>
+      <stop offset="100%" stop-color="#050203"/>
+    </linearGradient>
+    <linearGradient id="quoteGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fb923c"/>
+      <stop offset="100%" stop-color="#f43f5e"/>
+    </linearGradient>
+    <filter id="glowAdivina" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="640" height="400" fill="url(#bgAdivina)"/>
+
+  <!-- Burbuja de Diálogo con Comillas -->
+  <g transform="translate(320, 190)" filter="url(#glowAdivina)">
+    <rect x="-140" y="-80" width="280" height="150" rx="28" fill="rgba(255,255,255,0.04)" stroke="url(#quoteGrad)" stroke-width="3"/>
+    <!-- Pico de bocadillo -->
+    <polygon points="-30,70 0,105 10,70" fill="rgba(255,255,255,0.04)" stroke="#f43f5e" stroke-width="3"/>
+    <rect x="-29" y="66" width="38" height="6" fill="#12090b"/>
+
+    <!-- Comillas Gigantes -->
+    <text x="-70" y="25" font-family="Georgia, serif" font-size="110" font-weight="900" fill="url(#quoteGrad)" opacity="0.9">“</text>
+    <text x="30" y="45" font-family="Georgia, serif" font-size="110" font-weight="900" fill="url(#quoteGrad)" opacity="0.9">”</text>
+    <circle cx="0" cy="5" r="10" fill="#fb923c"/>
+  </g>
+
+  <!-- Tag -->
+  <g transform="translate(40, 50)">
+    <rect width="130" height="34" rx="17" fill="rgba(251,146,60,0.15)" stroke="#fb923c" stroke-width="1.5"/>
+    <text x="65" y="22" font-family="system-ui, sans-serif" font-size="12" font-weight="900" fill="#fb923c" text-anchor="middle" letter-spacing="1">QUOTE GUESS</text>
+  </g>
+</svg>

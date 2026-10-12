@@ -45,12 +45,11 @@ export function HeroCarousel({ games }: HeroCarouselProps) {
 
   return (
     <div
-      className="relative w-full rounded-[24px] overflow-hidden border border-white/10 bg-black/40 shadow-2xl backdrop-blur-md group"
+      className="relative w-full rounded-3xl overflow-hidden border border-white/15 bg-zinc-950/80 shadow-2xl group"
       onMouseEnter={() => setIsPaused(true)}
       onMouseLeave={() => setIsPaused(false)}
     >
-      {/* Contenedor de Imagen de Fondo */}
-      <div className="relative h-[260px] sm:h-[340px] md:h-[400px] w-full overflow-hidden">
+      <div className="relative h-[250px] sm:h-[300px] md:h-[340px] w-full overflow-hidden">
         <Image
           src={current.cover_url}
           alt={current.title}
@@ -58,43 +57,41 @@ export function HeroCarousel({ games }: HeroCarouselProps) {
           priority
           sizes="(max-width: 1200px) 100vw, 1200px"
           className="object-cover transition-transform duration-700 group-hover:scale-105"
-          unoptimized={current.cover_url.endsWith('.svg')}
+          unoptimized
         />
 
-        {/* Gradientes de superposición */}
-        <div className="absolute inset-0 bg-gradient-to-t from-[#14070f] via-[#14070f]/60 to-transparent" />
-        <div className="absolute inset-0 bg-gradient-to-r from-[#14070f] via-[#14070f]/40 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-t from-black via-black/60 to-transparent" />
+        <div className="absolute inset-0 bg-gradient-to-r from-black via-black/40 to-transparent" />
 
-        {/* Contenido flotante */}
         <div className="absolute inset-0 p-6 sm:p-10 flex flex-col justify-end max-w-2xl z-10">
           <div className="flex items-center gap-2 mb-2 sm:mb-3">
-            <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider bg-gradient-to-r from-[#ff4d7a] to-[#a855f7] text-white shadow-[0_0_12px_rgba(255,77,122,0.5)]">
-              <Sparkles className="w-3.5 h-3.5" />
-              <span>Juego Destacado</span>
+            <span className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] font-extrabold uppercase tracking-wider bg-white/20 text-white backdrop-blur-md">
+              <Sparkles className="w-3 h-3 text-cyan-400" />
+              <span>Destacado</span>
             </span>
-            <span className="px-2.5 py-1 rounded-full text-xs font-semibold bg-white/10 text-white/80 border border-white/10 backdrop-blur-md uppercase">
+            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-cyan-500/10 text-cyan-300 border border-cyan-500/20 uppercase">
               {current.category}
             </span>
           </div>
 
-          <h2 className="text-2xl sm:text-4xl md:text-5xl font-black text-white tracking-tight leading-tight mb-2 drop-shadow-md">
+          <h2 className="text-2xl sm:text-4xl font-black text-white tracking-tight uppercase leading-tight mb-2">
             {current.title}
           </h2>
 
-          <p className="text-xs sm:text-sm text-[#f5eef2]/80 line-clamp-2 max-w-xl mb-4 sm:mb-6 leading-relaxed">
+          <p className="text-xs sm:text-sm text-zinc-300 line-clamp-2 max-w-xl mb-4 sm:mb-5 leading-relaxed">
             {current.description}
           </p>
 
           <div className="flex items-center gap-4">
             <Link
               href={`/arcade/libres/${current.slug}`}
-              className="inline-flex items-center gap-2.5 px-6 py-3 rounded-full text-sm font-extrabold uppercase tracking-wider text-white bg-gradient-to-r from-[#ff4d7a] to-[#e8365d] hover:brightness-110 shadow-[0_0_25px_rgba(255,77,122,0.6)] hover:shadow-[0_0_35px_rgba(255,77,122,0.9)] hover:scale-105 active:scale-95 transition-all cursor-pointer"
+              className="inline-flex items-center gap-2 px-6 py-3 rounded-full text-xs font-black uppercase tracking-wider text-black bg-white hover:bg-zinc-200 shadow-xl hover:scale-105 active:scale-95 transition-all cursor-pointer"
             >
-              <Play className="w-4 h-4 fill-white" />
+              <Play className="w-4 h-4 fill-black" />
               <span>Jugar Ahora</span>
             </Link>
 
-            <span className="text-xs text-white/60 font-semibold hidden sm:inline">
+            <span className="text-xs text-zinc-400 font-semibold hidden sm:inline">
               👁️ {current.plays_count} partidas jugadas
             </span>
           </div>
@@ -105,14 +102,14 @@ export function HeroCarousel({ games }: HeroCarouselProps) {
           <>
             <button
               onClick={handlePrev}
-              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-md border border-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:scale-110"
+              className="absolute left-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/60 hover:bg-black/90 border border-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
               title="Anterior"
             >
               <ChevronLeft className="w-5 h-5" />
             </button>
             <button
               onClick={handleNext}
-              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-10 h-10 rounded-full bg-black/40 hover:bg-black/70 backdrop-blur-md border border-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer hover:scale-110"
+              className="absolute right-3 top-1/2 -translate-y-1/2 z-20 w-9 h-9 rounded-full bg-black/60 hover:bg-black/90 border border-white/10 text-white flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer"
               title="Siguiente"
             >
               <ChevronRight className="w-5 h-5" />
@@ -122,14 +119,14 @@ export function HeroCarousel({ games }: HeroCarouselProps) {
 
         {/* Indicadores de puntos */}
         {featured.length > 1 && (
-          <div className="absolute bottom-4 right-6 z-20 flex items-center gap-2">
+          <div className="absolute bottom-4 right-6 z-20 flex items-center gap-1.5">
             {featured.map((_, idx) => (
               <button
                 key={idx}
                 onClick={() => setCurrentIndex(idx)}
-                className={`h-2 rounded-full transition-all cursor-pointer ${
+                className={`h-1.5 rounded-full transition-all cursor-pointer ${
                   currentIndex === idx
-                    ? 'w-6 bg-[#ff4d7a] shadow-[0_0_8px_#ff4d7a]'
+                    ? 'w-6 bg-white shadow-sm'
                     : 'w-2 bg-white/30 hover:bg-white/60'
                 }`}
                 title={`Ir al juego ${idx + 1}`}

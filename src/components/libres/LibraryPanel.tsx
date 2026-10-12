@@ -32,25 +32,25 @@ export function LibraryPanel({
   const currentList = activeTab === 'favoritos' ? favoriteGames : recentGames;
 
   return (
-    <div className="flex flex-col bg-white/[0.03] backdrop-blur-xl border border-white/10 rounded-[20px] p-4 sm:p-5 h-full">
+    <div className="flex flex-col bg-zinc-900/50 border border-white/10 rounded-2xl p-4 sm:p-5 h-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3.5">
         <div className="flex items-center gap-2">
-          <Bookmark className="w-4 h-4 text-[#ff4d7a]" />
-          <h3 className="font-extrabold text-sm sm:text-base text-[#f5eef2] tracking-wide">
+          <Bookmark className="w-4 h-4 text-cyan-400" />
+          <h3 className="font-extrabold text-sm text-white tracking-wide uppercase">
             Mi Biblioteca
           </h3>
         </div>
       </div>
 
       {/* Tabs */}
-      <div className="flex items-center gap-1.5 p-1 bg-black/30 rounded-xl border border-white/5 mb-3">
+      <div className="flex items-center gap-1.5 p-1 bg-black/40 rounded-xl border border-white/5 mb-3">
         <button
           onClick={() => setActiveTab('favoritos')}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'favoritos'
-              ? 'bg-[#ff4d7a] text-white shadow-md'
-              : 'text-[#b7a3ad] hover:text-white'
+              ? 'bg-white text-black shadow-sm'
+              : 'text-zinc-400 hover:text-white'
           }`}
         >
           <Star className="w-3.5 h-3.5 fill-current" />
@@ -60,8 +60,8 @@ export function LibraryPanel({
           onClick={() => setActiveTab('recientes')}
           className={`flex-1 flex items-center justify-center gap-1.5 py-1.5 rounded-lg text-xs font-bold transition-all cursor-pointer ${
             activeTab === 'recientes'
-              ? 'bg-[#ff4d7a] text-white shadow-md'
-              : 'text-[#b7a3ad] hover:text-white'
+              ? 'bg-white text-black shadow-sm'
+              : 'text-zinc-400 hover:text-white'
           }`}
         >
           <Clock className="w-3.5 h-3.5" />
@@ -70,13 +70,13 @@ export function LibraryPanel({
       </div>
 
       {/* Lista de minijuegos */}
-      <div className="flex flex-col gap-2 overflow-y-auto max-h-[380px] pr-1">
+      <div className="flex flex-col gap-2 overflow-y-auto max-h-[320px] pr-1">
         {currentList.length === 0 ? (
           <div className="flex flex-col items-center justify-center py-8 text-center px-2">
-            <p className="text-xs text-[#b7a3ad]">
+            <p className="text-xs text-zinc-500">
               {activeTab === 'favoritos'
-                ? 'No tienes juegos favoritos guardados. Toca la estrella en cualquier tarjeta para agregarlo.'
-                : 'Aún no has jugado ningún juego recientemente. ¡Empieza con una partida!'}
+                ? 'No tienes juegos favoritos. Toca la estrella en cualquier tarjeta para agregarlo.'
+                : 'Aún no has jugado recientemente. ¡Empieza una partida!'}
             </p>
           </div>
         ) : (
@@ -84,31 +84,31 @@ export function LibraryPanel({
             <Link
               key={game.slug}
               href={`/arcade/libres/${game.slug}`}
-              className="group flex items-center justify-between gap-3 p-2 rounded-xl bg-white/[0.02] hover:bg-white/[0.07] border border-white/5 hover:border-[#ff4d7a]/30 transition-all"
+              className="group flex items-center justify-between gap-3 p-2 rounded-xl bg-zinc-900/60 hover:bg-zinc-800 border border-white/5 hover:border-white/15 transition-all"
             >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="relative w-12 h-9 rounded-lg overflow-hidden shrink-0 bg-black/40 border border-white/10">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="relative w-11 h-8 rounded-lg overflow-hidden shrink-0 bg-black/60 border border-white/10">
                   <Image
                     src={game.cover_url}
                     alt={game.title}
                     fill
-                    sizes="48px"
+                    sizes="44px"
                     className="object-cover group-hover:scale-105 transition-transform"
-                    unoptimized={game.cover_url.endsWith('.svg')}
+                    unoptimized
                   />
                 </div>
                 <div className="min-w-0">
-                  <h4 className="text-xs font-bold text-[#f5eef2] group-hover:text-[#ff8aa6] truncate">
+                  <h4 className="text-xs font-bold text-zinc-200 group-hover:text-white truncate">
                     {game.title}
                   </h4>
-                  <span className="text-[10px] text-[#b7a3ad] uppercase font-semibold">
+                  <span className="text-[10px] text-zinc-500 uppercase font-semibold">
                     {game.category}
                   </span>
                 </div>
               </div>
 
-              <div className="w-7 h-7 rounded-full bg-white/10 group-hover:bg-[#ff4d7a] text-white flex items-center justify-center shrink-0 transition-colors">
-                <Play className="w-3 h-3 fill-white ml-0.5" />
+              <div className="w-7 h-7 rounded-full bg-white/10 group-hover:bg-white text-white group-hover:text-black flex items-center justify-center shrink-0 transition-colors">
+                <Play className="w-3 h-3 fill-current ml-0.5" />
               </div>
             </Link>
           ))

@@ -77,10 +77,10 @@ export default function AportarPage() {
     <ArcadeLayout>
       <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
         {/* Barra superior */}
-        <div className="flex items-center justify-between bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[20px] p-4 shadow-xl">
+        <div className="flex items-center justify-between bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl">
           <Link
             href="/arcade"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs font-bold text-[#b7a3ad] hover:text-white border border-white/5 transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-xs font-bold text-zinc-300 hover:text-white border border-white/10 transition-all"
           >
             <ArrowLeft className="h-4 w-4" /> Volver al Arcade
           </Link>
@@ -97,20 +97,20 @@ export default function AportarPage() {
           <h1 className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-blue-400 via-indigo-300 to-purple-400 uppercase tracking-tight">
             APORTAR AL ARCADE
           </h1>
-          <p className="mt-1 text-xs sm:text-sm text-[#b7a3ad] max-w-xl mx-auto">
+          <p className="mt-1 text-xs sm:text-sm text-zinc-400 max-w-xl mx-auto">
             Añade frases épicas o preguntas desafiantes para que aparezcan en los minijuegos de todos tus amigos.
           </p>
         </div>
 
         {/* Contenedor del formulario */}
-        <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[24px] overflow-hidden shadow-2xl">
+        <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/10 rounded-2xl overflow-hidden shadow-2xl">
           <div className="flex border-b border-white/10 bg-black/20">
             <button
               onClick={() => setActiveTab('phrase')}
               className={`flex-1 py-4 font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 cursor-pointer ${
                 activeTab === 'phrase'
-                  ? 'bg-[#ff4d7a]/15 text-[#ff8aa6] border-b-2 border-[#ff4d7a]'
-                  : 'text-[#b7a3ad] hover:text-white hover:bg-white/[0.03]'
+                  ? 'bg-amber-500/15 text-amber-400 border-b-2 border-amber-500'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.03]'
               }`}
             >
               <Target className="w-4 h-4" /> Frases Célebres
@@ -120,7 +120,7 @@ export default function AportarPage() {
               className={`flex-1 py-4 font-black text-xs sm:text-sm uppercase tracking-wider transition-all flex items-center justify-center gap-2.5 cursor-pointer ${
                 activeTab === 'trivia'
                   ? 'bg-blue-500/15 text-blue-400 border-b-2 border-blue-500'
-                  : 'text-[#b7a3ad] hover:text-white hover:bg-white/[0.03]'
+                  : 'text-zinc-400 hover:text-white hover:bg-white/[0.03]'
               }`}
             >
               <Trophy className="w-4 h-4" /> Trivia Preguntas
@@ -147,19 +147,19 @@ export default function AportarPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#b7a3ad] uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
                       La Frase
                     </label>
                     <textarea
                       value={phraseText}
                       onChange={(e) => setPhraseText(e.target.value)}
                       placeholder="&ldquo;Literalmente estaba a un toque de vida...&rdquo;"
-                      className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white placeholder-zinc-600 focus:outline-none focus:border-[#ff4d7a] resize-none h-32 text-sm sm:text-base leading-relaxed"
+                      className="w-full bg-black/40 border border-white/10 rounded-2xl p-4 text-white placeholder-zinc-600 focus:outline-none focus:border-amber-400 resize-none h-32 text-sm sm:text-base leading-relaxed"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#b7a3ad] uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
                       ¿Quién lo dijo?
                     </label>
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-2.5">
@@ -169,8 +169,8 @@ export default function AportarPage() {
                           onClick={() => setPhraseAuthor(m)}
                           className={`p-3.5 rounded-xl border cursor-pointer font-bold text-center transition-all text-xs sm:text-sm ${
                             phraseAuthor === m
-                              ? 'bg-[#ff4d7a]/20 border-[#ff4d7a] text-white shadow-md'
-                              : 'bg-black/30 border-white/10 text-[#b7a3ad] hover:border-white/30'
+                              ? 'bg-amber-500/20 border-amber-400 text-white shadow-md'
+                              : 'bg-black/30 border-white/10 text-zinc-400 hover:border-white/30'
                           }`}
                         >
                           {m}
@@ -182,7 +182,7 @@ export default function AportarPage() {
                   <button
                     type="submit"
                     disabled={!phraseText.trim()}
-                    className="w-full bg-gradient-to-r from-[#ff4d7a] to-[#e8365d] hover:brightness-110 disabled:opacity-40 disabled:cursor-not-allowed text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider cursor-pointer shadow-lg shadow-[#ff4d7a]/20"
+                    className="w-full bg-white hover:bg-zinc-200 disabled:opacity-40 disabled:cursor-not-allowed text-black font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider cursor-pointer shadow-xl"
                   >
                     <Send className="w-4 h-4" /> GUARDAR FRASE
                   </button>
@@ -206,7 +206,7 @@ export default function AportarPage() {
                   </div>
 
                   <div>
-                    <label className="block text-xs font-bold text-[#b7a3ad] uppercase tracking-wider mb-2">
+                    <label className="block text-xs font-bold text-zinc-400 uppercase tracking-wider mb-2">
                       Pregunta
                     </label>
                     <input
@@ -271,7 +271,7 @@ export default function AportarPage() {
 
                   <button
                     type="submit"
-                    className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:brightness-110 text-white font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider cursor-pointer shadow-lg shadow-blue-500/20"
+                    className="w-full bg-white hover:bg-zinc-200 text-black font-black py-4 rounded-2xl transition-all flex items-center justify-center gap-2 text-sm uppercase tracking-wider cursor-pointer shadow-xl"
                   >
                     <Send className="w-4 h-4" /> GUARDAR PREGUNTA
                   </button>

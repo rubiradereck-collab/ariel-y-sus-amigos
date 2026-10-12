@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useMemo } from 'react';
+import Link from 'next/link';
 import { ExternalGame, GameCategory } from '@/lib/libres/types';
 import {
   fetchExternalGames,
@@ -9,12 +10,12 @@ import {
   toggleFavorite,
 } from '@/lib/libres/queries';
 import { createClient } from '@/lib/supabase/client';
-import { Sidebar } from '@/components/libres/Sidebar';
-import { TopBar } from '@/components/libres/TopBar';
+import { MainLayout } from '@/components/layout/MainLayout';
 import { HeroCarousel } from '@/components/libres/HeroCarousel';
 import { LibraryPanel } from '@/components/libres/LibraryPanel';
 import { CategoryChips } from '@/components/libres/CategoryChips';
 import { GameGrid } from '@/components/libres/GameGrid';
+import { ArrowLeft, Search, Sparkles } from 'lucide-react';
 
 export default function JuegosLibresPage() {
   const [games, setGames] = useState<ExternalGame[]>([]);
@@ -49,7 +50,6 @@ export default function JuegosLibresPage() {
 
   const handleToggleFavorite = async (slug: string) => {
     if (!userId) {
-      // Optimista para invitados
       setFavoriteSlugs((prev) =>
         prev.includes(slug) ? prev.filter((s) => s !== slug) : [...prev, slug]
       );
@@ -64,7 +64,6 @@ export default function JuegosLibresPage() {
     await toggleFavorite(userId, slug, isFav);
   };
 
-  // Cálculo de conteos por categoría
   const categoryCounts = useMemo(() => {
     const counts: Record<GameCategory, number> = {
       todos: games.length,
@@ -84,17 +83,14 @@ export default function JuegosLibresPage() {
     return counts;
   }, [games, favoriteSlugs]);
 
-  // Filtrado de juegos
   const filteredGames = useMemo(() => {
     return games.filter((game) => {
-      // Filtro por categoría
       if (currentCategory === 'favoritos') {
         if (!favoriteSlugs.includes(game.slug)) return false;
       } else if (currentCategory !== 'todos') {
         if (game.category !== currentCategory) return false;
       }
 
-      // Filtro por búsqueda
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase();
         const matchesTitle = game.title.toLowerCase().includes(q);
@@ -108,72 +104,96 @@ export default function JuegosLibresPage() {
   }, [games, currentCategory, favoriteSlugs, searchQuery]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-b from-[#14070f] via-[#1b0816] to-[#0a030b] text-[#f5eef2] p-3 sm:p-6 lg:p-8">
-      <div className="max-w-[1700px] mx-auto flex flex-col lg:flex-row gap-6">
-        {/* Sidebar Gamer a la izquierda */}
-        <Sidebar />
-
-        {/* Contenido Principal */}
-        <main className="flex-1 flex flex-col gap-6 min-w-0">
-          {/* TopBar con buscador y perfil */}
-          <TopBar
-            searchQuery={searchQuery}
-            onSearchChange={setSearchQuery}
-          />
-
-          {/* Hero Section y Biblioteca (Layout inspirado en referencia) */}
-          <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
-            <div className="xl:col-span-2">
-              <HeroCarousel games={games} />
-            </div>
-            <div className="xl:col-span-1">
-              <LibraryPanel
-                allGames={games}
-                favoriteSlugs={favoriteSlugs}
-                recentSlugs={recentSlugs}
-              />
+    <MainLayout>
+      <div className="w-full min-h-screen px-4 sm:px-8 pt-6 pb-28 max-w-7xl mx-auto flex flex-col gap-8 text-white">
+        
+        {/* Cabecera con navegación y buscador */}
+        <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-white/10 pb-5">
+          <div className="flex items-center gap-3">
+            <Link
+              href="/arcade"
+              className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-900 hover:bg-zinc-800 text-xs font-bold text-zinc-300 hover:text-white border border-white/10 transition-all"
+            >
+              <ArrowLeft className="w-4 h-4" />
+              <span>Volver a Arcade</span>
+            </Link>
+            <div className="h-4 w-[1px] bg-white/10 hidden sm:block" />
+            <div>
+              <h1 className="text-xl sm:text-2xl font-black uppercase text-white tracking-wide">
+                Minijuegos Libres (Friv)
+              </h1>
+              <p className="text-xs text-zinc-400">8 títulos en HTML5 nativo sin descargas ni anuncios.</p>
             </div>
           </div>
 
-          {/* Filtros de Categoría */}
-          <div className="flex flex-col gap-4">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="text-lg sm:text-xl font-extrabold text-white tracking-wide">
-                  Colección de Minijuegos
-                </h3>
-                <p className="text-xs text-[#b7a3ad]">
-                  Juegos instantáneos en HTML5 para jugar en tu navegador.
-                </p>
-              </div>
-            </div>
-
-            <CategoryChips
-              currentCategory={currentCategory}
-              onSelectCategory={setCurrentCategory}
-              counts={categoryCounts}
+          <div className="relative w-full md:w-72">
+            <Search className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-zinc-400" />
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              placeholder="Buscar minijuego..."
+              className="w-full pl-10 pr-4 py-2 rounded-xl bg-zinc-900 border border-white/10 text-xs text-white placeholder-zinc-500 focus:outline-none focus:border-cyan-400 transition-all"
             />
+            {searchQuery && (
+              <button
+                onClick={() => setSearchQuery('')}
+                className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-zinc-400 hover:text-white"
+              >
+                ✕
+              </button>
+            )}
           </div>
+        </div>
 
-          {/* Grid de Juegos */}
-          {isLoading ? (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 animate-pulse">
-              {[...Array(8)].map((_, i) => (
-                <div
-                  key={i}
-                  className="h-64 rounded-[20px] bg-white/5 border border-white/5"
-                />
-              ))}
-            </div>
-          ) : (
-            <GameGrid
-              games={filteredGames}
+        {/* Hero Section y Biblioteca */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 items-stretch">
+          <div className="xl:col-span-2">
+            <HeroCarousel games={games} />
+          </div>
+          <div className="xl:col-span-1">
+            <LibraryPanel
+              allGames={games}
               favoriteSlugs={favoriteSlugs}
-              onToggleFavorite={handleToggleFavorite}
+              recentSlugs={recentSlugs}
             />
-          )}
-        </main>
+          </div>
+        </div>
+
+        {/* Filtros de Categoría */}
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-2">
+            <Sparkles className="w-4 h-4 text-cyan-400" />
+            <h2 className="text-base sm:text-lg font-black text-white uppercase tracking-wider">
+              Explorar por Categoría
+            </h2>
+          </div>
+
+          <CategoryChips
+            currentCategory={currentCategory}
+            onSelectCategory={setCurrentCategory}
+            counts={categoryCounts}
+          />
+        </div>
+
+        {/* Grid de Juegos */}
+        {isLoading ? (
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 animate-pulse">
+            {[...Array(8)].map((_, i) => (
+              <div
+                key={i}
+                className="h-64 rounded-2xl bg-zinc-900/60 border border-white/5"
+              />
+            ))}
+          </div>
+        ) : (
+          <GameGrid
+            games={filteredGames}
+            favoriteSlugs={favoriteSlugs}
+            onToggleFavorite={handleToggleFavorite}
+          />
+        )}
       </div>
-    </div>
+    </MainLayout>
   );
 }

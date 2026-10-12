@@ -93,10 +93,10 @@ export default function TriviaPage() {
     <ArcadeLayout>
       <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
         {/* Barra superior */}
-        <div className="flex items-center justify-between bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[20px] p-4 shadow-xl">
+        <div className="flex items-center justify-between bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl">
           <Link
             href="/arcade"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs font-bold text-[#b7a3ad] hover:text-white border border-white/5 transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-xs font-bold text-zinc-300 hover:text-white border border-white/10 transition-all"
           >
             <ArrowLeft className="h-4 w-4" /> Volver al Arcade
           </Link>
@@ -109,7 +109,7 @@ export default function TriviaPage() {
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[50vh] bg-white/[0.03] rounded-[24px] border border-white/10">
+          <div className="flex flex-col items-center justify-center min-h-[50vh] bg-zinc-900/40 rounded-2xl border border-white/10">
             <Database className="w-12 h-12 text-blue-400 animate-pulse mb-3" />
             <h2 className="text-sm font-bold text-white uppercase tracking-wider">Cargando trivia...</h2>
           </div>
@@ -117,7 +117,7 @@ export default function TriviaPage() {
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white/[0.04] backdrop-blur-xl border border-white/10 p-8 sm:p-12 rounded-[24px] text-center shadow-2xl"
+            className="bg-zinc-900/50 backdrop-blur-xl border border-white/10 p-8 sm:p-12 rounded-2xl text-center shadow-2xl"
           >
             <div className="w-20 h-20 rounded-2xl bg-amber-500/10 border border-amber-500/20 text-amber-400 flex items-center justify-center mx-auto mb-6 shadow-lg shadow-amber-500/10">
               <Brain className="w-10 h-10" />
@@ -125,19 +125,19 @@ export default function TriviaPage() {
             <h1 className="text-3xl sm:text-5xl font-black text-white mb-3 uppercase tracking-tight">
               TRIVIA DEL GRUPO
             </h1>
-            <p className="text-[#b7a3ad] max-w-lg mx-auto mb-8 text-xs sm:text-sm leading-relaxed">
+            <p className="text-zinc-400 max-w-lg mx-auto mb-8 text-xs sm:text-sm leading-relaxed">
               Demuestra cuánto conoces anécdotas, gustos y secretos de tus amigos. Responde rápido para sumar XP.
             </p>
             <button
               onClick={() => setStarted(true)}
-              className="bg-gradient-to-r from-[#ff4d7a] to-[#e8365d] hover:brightness-110 text-white font-extrabold text-sm uppercase tracking-wider px-10 py-4 rounded-full transition-all hover:scale-105 shadow-[0_0_25px_rgba(255,77,122,0.5)] cursor-pointer"
+              className="bg-white hover:bg-zinc-200 text-black font-extrabold text-sm uppercase tracking-wider px-10 py-4 rounded-full transition-all hover:scale-105 shadow-xl cursor-pointer"
             >
               Comenzar Reto
             </button>
             <div className="mt-8 pt-6 border-t border-white/5">
               <Link
                 href="/arcade/aportar"
-                className="text-xs text-[#ff4d7a] hover:text-[#ff8aa6] font-bold transition-colors"
+                className="text-xs text-cyan-400 hover:text-cyan-300 font-bold transition-colors"
               >
                 ¿Quieres agregar tus preguntas? Aporta a la base de datos →
               </Link>
@@ -147,11 +147,11 @@ export default function TriviaPage() {
           <motion.div
             initial={{ scale: 0.95, opacity: 0 }}
             animate={{ scale: 1, opacity: 1 }}
-            className="bg-white/[0.04] backdrop-blur-xl border border-white/10 p-8 sm:p-12 rounded-[24px] text-center shadow-2xl relative overflow-hidden"
+            className="bg-zinc-900/50 backdrop-blur-xl border border-white/10 p-8 sm:p-12 rounded-2xl text-center shadow-2xl relative overflow-hidden"
           >
             <Trophy className="w-24 h-24 text-yellow-400 mx-auto mb-4 drop-shadow-[0_0_25px_rgba(250,204,21,0.6)]" />
             <h2 className="text-3xl font-black text-white mb-1">¡Trivia Completada!</h2>
-            <p className="text-xs text-[#b7a3ad] mb-6">Puntuación Final Obtenida</p>
+            <p className="text-xs text-zinc-400 mb-6">Puntuación Final Obtenida</p>
             <div className="text-5xl sm:text-6xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 to-yellow-300 mb-8">
               {score} XP
             </div>
@@ -165,15 +165,15 @@ export default function TriviaPage() {
                 setIsAnswering(false);
                 setFinished(false);
               }}
-              className="bg-white/10 hover:bg-white/20 text-white text-xs font-bold px-8 py-3 rounded-full transition-colors cursor-pointer border border-white/15"
+              className="bg-zinc-800 hover:bg-zinc-700 text-white text-xs font-bold px-8 py-3 rounded-full transition-colors cursor-pointer border border-white/15"
             >
               Jugar de Nuevo
             </button>
           </motion.div>
         ) : (
           <div className="flex flex-col gap-6">
-            <div className="flex justify-between items-center bg-white/[0.04] border border-white/10 px-6 py-3 rounded-2xl">
-              <span className="font-bold text-xs text-[#38bdf8]">
+            <div className="flex justify-between items-center bg-zinc-900/60 border border-white/10 px-6 py-3 rounded-2xl">
+              <span className="font-bold text-xs text-cyan-400">
                 Pregunta {currentQ + 1} de {questions.length}
               </span>
               <span className="font-black text-xs text-yellow-400 flex items-center gap-1.5">
@@ -181,7 +181,7 @@ export default function TriviaPage() {
               </span>
             </div>
 
-            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[24px] p-6 sm:p-10 shadow-2xl">
+            <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sm:p-10 shadow-2xl">
               <h2 className="text-xl sm:text-3xl font-black text-white leading-snug mb-8 text-center">
                 {questions[currentQ].text}
               </h2>
@@ -191,12 +191,12 @@ export default function TriviaPage() {
                   const isSelected = selected === opt;
                   const isCorrect = opt === questions[currentQ].correct;
 
-                  let btnClass = 'bg-white/[0.03] border-white/10 hover:border-[#ff4d7a]/50 hover:bg-white/[0.08] text-white';
+                  let btnClass = 'bg-white/[0.03] border-white/10 hover:border-cyan-500/50 hover:bg-white/[0.08] text-white';
 
                   if (isAnswering) {
                     if (isCorrect) btnClass = 'bg-emerald-500/20 border-emerald-500 text-emerald-300';
                     else if (isSelected && !isCorrect) btnClass = 'bg-red-500/20 border-red-500 text-red-300';
-                    else btnClass = 'bg-white/[0.01] border-white/5 text-[#b7a3ad]/50 opacity-40';
+                    else btnClass = 'bg-white/[0.01] border-white/5 text-zinc-500 opacity-40';
                   }
 
                   return (

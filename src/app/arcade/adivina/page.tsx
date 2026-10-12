@@ -74,10 +74,10 @@ export default function AdivinaPage() {
     <ArcadeLayout>
       <div className="flex flex-col gap-6 w-full max-w-4xl mx-auto">
         {/* Barra superior */}
-        <div className="flex items-center justify-between bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[20px] p-4 shadow-xl">
+        <div className="flex items-center justify-between bg-zinc-900/60 backdrop-blur-xl border border-white/10 rounded-2xl p-4 shadow-xl">
           <Link
             href="/arcade"
-            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-white/[0.05] hover:bg-white/[0.1] text-xs font-bold text-[#b7a3ad] hover:text-white border border-white/5 transition-all"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-xl bg-zinc-800/80 hover:bg-zinc-700 text-xs font-bold text-zinc-300 hover:text-white border border-white/10 transition-all"
           >
             <ArrowLeft className="h-4 w-4" /> Volver al Arcade
           </Link>
@@ -90,33 +90,33 @@ export default function AdivinaPage() {
         </div>
 
         {loading ? (
-          <div className="flex flex-col items-center justify-center min-h-[50vh] bg-white/[0.03] rounded-[24px] border border-white/10">
+          <div className="flex flex-col items-center justify-center min-h-[50vh] bg-zinc-900/40 rounded-2xl border border-white/10">
             <Database className="w-12 h-12 text-orange-400 animate-pulse mb-3" />
             <h2 className="text-sm font-bold text-white uppercase tracking-wider">Cargando frases...</h2>
           </div>
         ) : (
           <div className="flex flex-col gap-6">
             <div className="text-center">
-              <h1 className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-orange-400 via-pink-400 to-[#ff4d7a] uppercase tracking-tight flex items-center justify-center gap-3">
+              <h1 className="text-3xl sm:text-5xl font-black text-transparent bg-clip-text bg-gradient-to-r from-amber-400 via-orange-300 to-amber-200 uppercase tracking-tight flex items-center justify-center gap-3">
                 <HelpCircle className="w-8 h-8 sm:w-10 sm:h-10 text-orange-400" />
                 <span>¿Quién dijo eso?</span>
               </h1>
-              <p className="text-xs sm:text-sm text-[#b7a3ad] mt-1">
+              <p className="text-xs sm:text-sm text-zinc-400 mt-1">
                 Adivina quién del grupo inmortalizó esta frase fuera de contexto.
               </p>
               <div className="mt-2">
                 <Link
                   href="/arcade/aportar"
-                  className="text-xs font-bold text-[#ff4d7a] hover:text-[#ff8aa6] transition-colors"
+                  className="text-xs font-bold text-cyan-400 hover:text-cyan-300 transition-colors"
                 >
                   ¿Tienes frases nuevas? Añádelas aquí →
                 </Link>
               </div>
             </div>
 
-            <div className="bg-white/[0.04] backdrop-blur-xl border border-white/10 rounded-[24px] p-6 sm:p-10 shadow-2xl">
+            <div className="bg-zinc-900/50 backdrop-blur-xl border border-white/10 rounded-2xl p-6 sm:p-10 shadow-2xl">
               <div className="flex justify-between items-center mb-6 border-b border-white/5 pb-4">
-                <span className="text-xs font-bold uppercase tracking-wider text-[#b7a3ad]">
+                <span className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                   Frase {currentPhrase + 1} de {phrases.length}
                 </span>
                 <span className="flex items-center gap-1.5 text-xs font-black text-yellow-400 bg-yellow-500/10 px-3 py-1.5 rounded-xl border border-yellow-500/20">
@@ -134,7 +134,7 @@ export default function AdivinaPage() {
                     className="text-center"
                   >
                     <div className="bg-black/40 border border-white/10 rounded-2xl p-6 sm:p-10 mb-8 relative overflow-hidden shadow-inner">
-                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-orange-400 to-[#ff4d7a]" />
+                      <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-amber-400 to-orange-500" />
                       <p className="text-xl sm:text-3xl font-black text-white italic leading-snug">
                         &ldquo;{phrases[currentPhrase].text}&rdquo;
                       </p>
@@ -145,12 +145,12 @@ export default function AdivinaPage() {
                         const isSelected = selected === member;
                         const isCorrect = member === phrases[currentPhrase].author;
 
-                        let btnClass = 'bg-white/[0.03] border-white/10 hover:border-[#ff4d7a]/50 hover:bg-white/[0.08] text-white';
+                        let btnClass = 'bg-white/[0.03] border-white/10 hover:border-cyan-500/50 hover:bg-white/[0.08] text-white';
 
                         if (status !== 'playing') {
                           if (isCorrect) btnClass = 'bg-emerald-500/20 border-emerald-500 text-emerald-300';
                           else if (isSelected && !isCorrect) btnClass = 'bg-red-500/20 border-red-500 text-red-300';
-                          else btnClass = 'bg-white/[0.01] border-white/5 text-[#b7a3ad]/40 opacity-40';
+                          else btnClass = 'bg-white/[0.01] border-white/5 text-zinc-500 opacity-40';
                         }
 
                         return (
@@ -179,13 +179,13 @@ export default function AdivinaPage() {
                   >
                     <Trophy className="w-20 h-20 text-yellow-400 mx-auto mb-4 drop-shadow-[0_0_20px_rgba(250,204,21,0.5)]" />
                     <h2 className="text-3xl font-black text-white mb-1">¡Juego Terminado!</h2>
-                    <p className="text-xs text-[#b7a3ad] mb-6">
+                    <p className="text-xs text-zinc-400 mb-6">
                       Has acumulado <strong className="text-yellow-400">{score} XP</strong> en total.
                     </p>
 
                     <button
                       onClick={restart}
-                      className="bg-gradient-to-r from-[#ff4d7a] to-[#e8365d] hover:brightness-110 text-white font-extrabold text-xs uppercase px-8 py-3.5 rounded-full inline-flex items-center gap-2 shadow-[0_0_20px_rgba(255,77,122,0.4)] transition-all cursor-pointer"
+                      className="bg-white hover:bg-zinc-200 text-black font-extrabold text-xs uppercase px-8 py-3.5 rounded-full inline-flex items-center gap-2 shadow-xl transition-all cursor-pointer"
                     >
                       <RefreshCw className="w-4 h-4" />
                       <span>JUGAR DE NUEVO</span>
