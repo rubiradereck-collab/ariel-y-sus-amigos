@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Memorama Cósmico</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #0d040a;
+      color: #f5eef2;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .panel {
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px solid rgba(255, 77, 122, 0.25);
+      border-radius: 24px;
+      padding: 20px;
+      max-width: 420px;
+      width: 100%;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.7);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+    }
+    .title {
+      font-size: 20px;
+      font-weight: 900;
+      color: #ff4d7a;
+      letter-spacing: 1px;
+    }
+    .stats {
+      display: flex;
+      gap: 10px;
+      font-size: 13px;
+      font-weight: 800;
+      color: #b7a3ad;
+    }
+    .stats span b { color: #fff; }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 10px;
+      aspect-ratio: 1;
+      width: 100%;
+      perspective: 1000px;
+    }
+    .card {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      transform-style: preserve-3d;
+      transition: transform 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      cursor: pointer;
+    }
+    .card.flipped { transform: rotateY(180deg); }
+    .card-face {
+      position: absolute;
+      inset: 0;
+      border-radius: 14px;
+      backface-visibility: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    }
+    .card-front {
+      background: linear-gradient(135deg, rgba(255,255,255,0.08), rgba(255,255,255,0.02));
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      font-size: 20px;
+      color: #7c3aed;
+    }
+    .card-front:hover { border-color: #ff4d7a; }
+    .card-back {
+      background: radial-gradient(circle, #3d1033 0%, #170519 100%);
+      border: 1.5px solid #ff4d7a;
+      transform: rotateY(180deg);
+      font-size: 32px;
+      box-shadow: 0 0 20px rgba(255,77,122,0.4);
+    }
+    .card.matched .card-back {
+      border-color: #4ade80;
+      box-shadow: 0 0 25px rgba(74,222,128,0.5);
+    }
+    .btn {
+      width: 100%;
+      margin-top: 16px;
+      background: linear-gradient(135deg, #ff4d7a, #7c3aed);
+      border: none;
+      color: #fff;
+      font-weight: 800;
+      padding: 12px;
+      border-radius: 14px;
+      font-size: 13px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      box-shadow: 0 4px 15px rgba(255,77,122,0.4);
+    }
+    .btn:active { transform: scale(0.97); }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="header">
+      <div class="title">MEMORAMA</div>
+      <div class="stats">
+        <span>Movs: <b id="moves">0</b></span>
+        <span>Tiempo: <b id="time">00:00</b></span>
+      </div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <button class="btn" onclick="initGame()">Reiniciar Partida</button>
+  </div>
+
+  <script>
+    const ICONS = ['🚀', '🎮', '👾', '💎', '⚡', '🔮', '👑', '🛡️'];
+    let cards = [], flipped = [], matchedCount = 0, moves = 0, timer = 0, interval = null, started = false;
+
+    function initGame() {
+      clearInterval(interval);
+      timer = 0; moves = 0; matchedCount = 0; started = false; flipped = [];
+      document.getElementById('moves').innerText = '0';
+      document.getElementById('time').innerText = '00:00';
+
+      const deck = [...ICONS, ...ICONS].sort(() => Math.random() - 0.5);
+      const grid = document.getElementById('grid');
+      grid.innerHTML = '';
+
+      deck.forEach((icon, idx) => {
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+          <div class="card-face card-front">✦</div>
+          <div class="card-face card-back">${icon}</div>
+        `;
+        card.onclick = () => flipCard(card, icon);
+        grid.appendChild(card);
+      });
+    }
+
+    function startTimer() {
+      if (!started) {
+        started = true;
+        interval = setInterval(() => {
+          timer++;
+          const m = String(Math.floor(timer / 60)).padStart(2, '0');
+          const s = String(timer % 60).padStart(2, '0');
+          document.getElementById('time').innerText = `${m}:${s}`;
+        }, 1000);
+      }
+    }
+
+    function flipCard(card, icon) {
+      if (flipped.length >= 2 || card.classList.contains('flipped') || card.classList.contains('matched')) return;
+
+      startTimer();
+      card.classList.add('flipped');
+      flipped.push({ card, icon });
+
+      if (flipped.length === 2) {
+        moves++;
+        document.getElementById('moves').innerText = moves;
+
+        if (flipped[0].icon === flipped[1].icon) {
+          flipped[0].card.classList.add('matched');
+          flipped[1].card.classList.add('matched');
+          matchedCount += 2;
+          flipped = [];
+          if (matchedCount === 16) {
+            clearInterval(interval);
+            setTimeout(() => alert(`🎉 ¡Completado en ${moves} movimientos y ${document.getElementById('time').innerText}!`), 300);
+          }
+        } else {
+          setTimeout(() => {
+            flipped[0].card.classList.remove('flipped');
+            flipped[1].card.classList.remove('flipped');
+            flipped = [];
+          }, 800);
+        }
+      }
+    }
+
+    initGame();
+  </script>
+</body>
+</html>

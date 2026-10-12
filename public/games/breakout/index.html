@@ -1,0 +1,238 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Destructor de Bloques</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #0d040a;
+      color: #f5eef2;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      padding: 12px;
+    }
+    .game-container {
+      position: relative;
+      width: 100%;
+      max-width: 520px;
+      aspect-ratio: 4 / 3;
+      background: radial-gradient(ellipse at top, #260a22 0%, #090208 100%);
+      border: 2px solid rgba(255, 77, 122, 0.4);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8);
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    .header-bar {
+      position: absolute;
+      top: 10px;
+      left: 14px;
+      right: 14px;
+      display: flex;
+      justify-content: space-between;
+      font-size: 13px;
+      font-weight: 800;
+      color: #b7a3ad;
+      pointer-events: none;
+    }
+    .header-bar b { color: #ff4d7a; }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(13, 4, 10, 0.88);
+      backdrop-filter: blur(6px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .overlay h1 { font-size: 26px; font-weight: 900; color: #ff4d7a; }
+    .btn {
+      background: linear-gradient(135deg, #ff4d7a, #7c3aed);
+      border: none;
+      color: #fff;
+      font-weight: 800;
+      padding: 12px 28px;
+      border-radius: 14px;
+      font-size: 13px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      box-shadow: 0 4px 20px rgba(255,77,122,0.5);
+    }
+    .btn:active { transform: scale(0.96); }
+    .help { font-size: 11px; color: #b7a3ad; margin-top: 10px; text-align: center; }
+  </style>
+</head>
+<body>
+  <div class="game-container" id="container">
+    <canvas id="canvas" width="520" height="390"></canvas>
+    <div class="header-bar">
+      <span>PUNTOS: <b id="score">0</b></span>
+      <span>VIDAS: <b id="lives">❤️❤️❤️</b></span>
+    </div>
+    <div class="overlay" id="overlay">
+      <h1 id="overlay-title">DESTRUCTOR DE BLOQUES</h1>
+      <button class="btn" onclick="startGame()">JUGAR</button>
+    </div>
+  </div>
+  <div class="help">Mueve el ratón, desliza el dedo o usa flechas para mover la paleta</div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    const PADDLE_W = 85, PADDLE_H = 12;
+    let pX = (W - PADDLE_W) / 2;
+    let ballX = W / 2, ballY = H - 50;
+    let bVX = 4, bVY = -4;
+    let score = 0, lives = 3, running = false;
+    let bricks = [];
+    const BRICK_ROWS = 5, BRICK_COLS = 8, BRICK_W = 54, BRICK_H = 16, BRICK_PAD = 8, BRICK_TOP = 45, BRICK_LEFT = 16;
+    const COLORS = ['#ff4d7a', '#f43f5e', '#ec4899', '#a855f7', '#3b82f6'];
+
+    function initBricks() {
+      bricks = [];
+      for (let r = 0; r < BRICK_ROWS; r++) {
+        for (let c = 0; c < BRICK_COLS; c++) {
+          bricks.push({
+            x: BRICK_LEFT + c * (BRICK_W + BRICK_PAD),
+            y: BRICK_TOP + r * (BRICK_H + BRICK_PAD),
+            color: COLORS[r],
+            alive: true,
+            points: (BRICK_ROWS - r) * 10
+          });
+        }
+      }
+    }
+
+    function startGame() {
+      score = 0; lives = 3;
+      pX = (W - PADDLE_W) / 2;
+      ballX = W / 2; ballY = H - 50;
+      bVX = (Math.random() < 0.5 ? 4 : -4); bVY = -4.5;
+      document.getElementById('score').innerText = '0';
+      document.getElementById('lives').innerText = '❤️❤️❤️';
+      document.getElementById('overlay').style.display = 'none';
+      initBricks();
+      running = true;
+      loop();
+    }
+
+    function loop() {
+      if (!running) return;
+
+      ballX += bVX;
+      ballY += bVY;
+
+      // Paredes
+      if (ballX - 5 <= 0 || ballX + 5 >= W) bVX = -bVX;
+      if (ballY - 5 <= 0) bVY = -bVY;
+
+      // Suelo
+      if (ballY + 5 >= H) {
+        lives--;
+        const heartStr = '❤️'.repeat(lives);
+        document.getElementById('lives').innerText = heartStr || '💀';
+        if (lives <= 0) {
+          running = false;
+          document.getElementById('overlay-title').innerText = '¡FIN DEL JUEGO!';
+          document.getElementById('overlay').style.display = 'flex';
+          return;
+        } else {
+          ballX = W / 2; ballY = H - 50;
+          bVX = (Math.random() < 0.5 ? 4 : -4); bVY = -4.5;
+        }
+      }
+
+      // Rebote Paleta
+      if (ballY + 5 >= H - 25 - PADDLE_H && ballY - 5 <= H - 25 && ballX >= pX && ballX <= pX + PADDLE_W) {
+        bVY = -Math.abs(bVY);
+        const hitOffset = (ballX - (pX + PADDLE_W / 2)) / (PADDLE_W / 2);
+        bVX = hitOffset * 5.5;
+      }
+
+      // Colisión Ladrillos
+      let remaining = 0;
+      for (let b of bricks) {
+        if (b.alive) {
+          remaining++;
+          if (ballX >= b.x && ballX <= b.x + BRICK_W && ballY >= b.y && ballY <= b.y + BRICK_H) {
+            b.alive = false;
+            bVY = -bVY;
+            score += b.points;
+            document.getElementById('score').innerText = score;
+            break;
+          }
+        }
+      }
+
+      if (remaining === 0) {
+        running = false;
+        document.getElementById('overlay-title').innerText = '¡VICTORIA TOTAL!';
+        document.getElementById('overlay').style.display = 'flex';
+        return;
+      }
+
+      // Dibujar
+      ctx.clearRect(0, 0, W, H);
+
+      // Ladrillos
+      for (let b of bricks) {
+        if (b.alive) {
+          ctx.fillStyle = b.color;
+          ctx.shadowColor = b.color;
+          ctx.shadowBlur = 8;
+          ctx.fillRect(b.x, b.y, BRICK_W, BRICK_H);
+        }
+      }
+      ctx.shadowBlur = 0;
+
+      // Paleta
+      ctx.fillStyle = '#ff4d7a';
+      ctx.shadowColor = '#ff4d7a';
+      ctx.shadowBlur = 12;
+      ctx.fillRect(pX, H - 25 - PADDLE_H, PADDLE_W, PADDLE_H);
+
+      // Bola
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 10;
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      requestAnimationFrame(loop);
+    }
+
+    // Controles
+    const container = document.getElementById('container');
+    container.addEventListener('mousemove', e => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = W / rect.width;
+      pX = Math.max(0, Math.min(W - PADDLE_W, (e.clientX - rect.left) * scaleX - PADDLE_W / 2));
+    });
+
+    container.addEventListener('touchmove', e => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleX = W / rect.width;
+      pX = Math.max(0, Math.min(W - PADDLE_W, (e.touches[0].clientX - rect.left) * scaleX - PADDLE_W / 2));
+    }, { passive: true });
+
+    window.addEventListener('keydown', e => {
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) pX = Math.max(0, pX - 25);
+      if (['ArrowRight', 'KeyD'].includes(e.code)) pX = Math.min(W - PADDLE_W, pX + 25);
+    });
+  </script>
+</body>
+</html>

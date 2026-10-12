@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
+  <defs>
+    <linearGradient id="bgMines" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#18051a"/>
+      <stop offset="50%" stop-color="#240722"/>
+      <stop offset="100%" stop-color="#0a020a"/>
+    </linearGradient>
+    <linearGradient id="mineGlow" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff4d7a"/>
+      <stop offset="100%" stop-color="#9333ea"/>
+    </linearGradient>
+    <filter id="glowMine" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="640" height="400" fill="url(#bgMines)"/>
+  
+  <!-- Celdas de fondo -->
+  <g opacity="0.15" stroke="#a855f7" stroke-width="1.5">
+    <rect x="80" y="40" width="80" height="80" rx="8" fill="rgba(255,255,255,0.02)"/>
+    <rect x="180" y="40" width="80" height="80" rx="8" fill="rgba(255,255,255,0.02)"/>
+    <rect x="280" y="40" width="80" height="80" rx="8" fill="rgba(255,255,255,0.02)"/>
+    <rect x="380" y="40" width="80" height="80" rx="8" fill="rgba(255,255,255,0.02)"/>
+    <rect x="480" y="40" width="80" height="80" rx="8" fill="rgba(255,255,255,0.02)"/>
+  </g>
+
+  <!-- Mina Cuántica Central -->
+  <g transform="translate(320, 200)" filter="url(#glowMine)">
+    <circle cx="0" cy="0" r="70" fill="url(#mineGlow)"/>
+    <circle cx="0" cy="0" r="45" fill="#130312" stroke="#ff8aa6" stroke-width="4"/>
+    <!-- Pinchos de mina -->
+    <line x1="0" y1="-95" x2="0" y2="95" stroke="#ff4d7a" stroke-width="8" stroke-linecap="round"/>
+    <line x1="-95" y1="0" x2="95" y2="0" stroke="#ff4d7a" stroke-width="8" stroke-linecap="round"/>
+    <line x1="-68" y1="-68" x2="68" y2="68" stroke="#a855f7" stroke-width="8" stroke-linecap="round"/>
+    <line x1="-68" y1="68" x2="68" y2="-68" stroke="#a855f7" stroke-width="8" stroke-linecap="round"/>
+    <!-- Núcleo de alerta -->
+    <circle cx="0" cy="0" r="20" fill="#ff4d7a"/>
+  </g>
+
+  <!-- Banderas y números flotantes -->
+  <g transform="translate(130, 180)" filter="url(#glowMine)">
+    <rect x="0" y="0" width="70" height="70" rx="14" fill="rgba(255,77,122,0.2)" stroke="#ff4d7a" stroke-width="2"/>
+    <text x="35" y="48" font-family="system-ui, sans-serif" font-size="32" font-weight="900" fill="#38bdf8" text-anchor="middle">3</text>
+  </g>
+  <g transform="translate(440, 180)" filter="url(#glowMine)">
+    <rect x="0" y="0" width="70" height="70" rx="14" fill="rgba(255,77,122,0.2)" stroke="#ff4d7a" stroke-width="2"/>
+    <text x="35" y="48" font-family="system-ui, sans-serif" font-size="30" font-weight="900" fill="#ff4d7a" text-anchor="middle">🚩</text>
+  </g>
+</svg>

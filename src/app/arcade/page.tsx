@@ -71,6 +71,17 @@ const games = [
     href: '/arcade/tictactoe',
     players: '1v1 / vs Bot',
     disabled: false
+  },
+  {
+    id: 'libres',
+    title: 'Juegos Libres (Minijuegos Friv)',
+    description: 'Catálogo de minijuegos neón instantáneos: 2048, Pong, Sudoku, Conecta 4, Buscaminas y más.',
+    icon: <Gamepad2 className="w-8 h-8 text-pink-400 drop-shadow-[0_0_10px_rgba(255,77,122,0.8)]" />,
+    image: 'https://images.unsplash.com/photo-1550745165-9bc0b252726f?q=80&w=2070&auto=format&fit=crop',
+    color: 'from-pink-600/80 to-black',
+    href: '/arcade/libres',
+    players: 'Solo & 2P',
+    disabled: false
   }
 ]
 

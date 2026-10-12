@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Pong Neón Cyberpunk</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #0d040a;
+      color: #f5eef2;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      overflow: hidden;
+      padding: 12px;
+    }
+    .game-container {
+      position: relative;
+      width: 100%;
+      max-width: 600px;
+      aspect-ratio: 4 / 3;
+      background: radial-gradient(ellipse at center, #1b0a1a 0%, #090208 100%);
+      border: 2px solid rgba(255, 77, 122, 0.4);
+      border-radius: 20px;
+      overflow: hidden;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.8), 0 0 30px rgba(255,77,122,0.15);
+    }
+    canvas { width: 100%; height: 100%; display: block; }
+    .scoreboard {
+      position: absolute;
+      top: 16px;
+      left: 0;
+      right: 0;
+      display: flex;
+      justify-content: center;
+      gap: 60px;
+      font-family: monospace;
+      font-size: 32px;
+      font-weight: 900;
+      pointer-events: none;
+    }
+    .p-score { color: #ff4d7a; text-shadow: 0 0 15px rgba(255,77,122,0.8); }
+    .ai-score { color: #38bdf8; text-shadow: 0 0 15px rgba(56,189,248,0.8); }
+    .overlay {
+      position: absolute;
+      inset: 0;
+      background: rgba(13, 4, 10, 0.88);
+      backdrop-filter: blur(6px);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 16px;
+    }
+    .overlay h1 {
+      font-size: 26px;
+      font-weight: 900;
+      color: #fff;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+    .btn {
+      background: linear-gradient(135deg, #ff4d7a, #7c3aed);
+      border: none;
+      color: #fff;
+      font-weight: 800;
+      padding: 12px 28px;
+      border-radius: 14px;
+      font-size: 13px;
+      cursor: pointer;
+      text-transform: uppercase;
+      letter-spacing: 1.5px;
+      box-shadow: 0 4px 20px rgba(255,77,122,0.5);
+    }
+    .btn:active { transform: scale(0.96); }
+    .help {
+      font-size: 11px;
+      color: #b7a3ad;
+      margin-top: 10px;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="game-container" id="container">
+    <canvas id="canvas" width="600" height="450"></canvas>
+    <div class="scoreboard">
+      <div class="p-score" id="score-p">0</div>
+      <div class="ai-score" id="score-ai">0</div>
+    </div>
+    <div class="overlay" id="start-overlay">
+      <h1 id="overlay-title">PONG NEÓN</h1>
+      <button class="btn" onclick="startGame()">JUGAR (PRIMERO A 5)</button>
+    </div>
+  </div>
+  <div class="help">Mueve el ratón, toca la pantalla o usa W / S / Flechas para mover tu paleta</div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.width, H = canvas.height;
+
+    const PADDLE_W = 12, PADDLE_H = 75;
+    let pY = (H - PADDLE_H) / 2;
+    let aiY = (H - PADDLE_H) / 2;
+    let ballX = W / 2, ballY = H / 2;
+    let bVX = 4.5, bVY = 2.5;
+    let pScore = 0, aiScore = 0;
+    let running = false;
+    let particles = [];
+
+    function resetBall(servingToAI) {
+      ballX = W / 2; ballY = H / 2;
+      bVX = (servingToAI ? 4.5 : -4.5);
+      bVY = (Math.random() - 0.5) * 5;
+    }
+
+    function createSparks(x, y, color) {
+      for (let i = 0; i < 8; i++) {
+        particles.push({
+          x, y,
+          vx: (Math.random() - 0.5) * 6,
+          vy: (Math.random() - 0.5) * 6,
+          color,
+          alpha: 1
+        });
+      }
+    }
+
+    function startGame() {
+      pScore = 0; aiScore = 0;
+      document.getElementById('score-p').innerText = '0';
+      document.getElementById('score-ai').innerText = '0';
+      document.getElementById('start-overlay').style.display = 'none';
+      running = true;
+      resetBall(false);
+      loop();
+    }
+
+    function loop() {
+      if (!running) return;
+
+      // Actualizar pelota
+      ballX += bVX;
+      ballY += bVY;
+
+      // Rebote techo y suelo
+      if (ballY - 6 <= 0 || ballY + 6 >= H) {
+        bVY = -bVY;
+        createSparks(ballX, ballY, '#ffffff');
+      }
+
+      // IA
+      const aiTarget = ballY - PADDLE_H / 2;
+      aiY += (aiTarget - aiY) * 0.085;
+      aiY = Math.max(0, Math.min(H - PADDLE_H, aiY));
+
+      // Rebote Paleta Jugador (Izquierda)
+      if (ballX - 6 <= 20 + PADDLE_W && ballX >= 20 && ballY >= pY && ballY <= pY + PADDLE_H) {
+        bVX = Math.abs(bVX) * 1.05;
+        const hitOffset = (ballY - (pY + PADDLE_H / 2)) / (PADDLE_H / 2);
+        bVY = hitOffset * 6;
+        ballX = 20 + PADDLE_W + 6;
+        createSparks(ballX, ballY, '#ff4d7a');
+      }
+
+      // Rebote Paleta IA (Derecha)
+      if (ballX + 6 >= W - 20 - PADDLE_W && ballX <= W - 20 && ballY >= aiY && ballY <= aiY + PADDLE_H) {
+        bVX = -Math.abs(bVX) * 1.05;
+        const hitOffset = (ballY - (aiY + PADDLE_H / 2)) / (PADDLE_H / 2);
+        bVY = hitOffset * 6;
+        ballX = W - 20 - PADDLE_W - 6;
+        createSparks(ballX, ballY, '#38bdf8');
+      }
+
+      // Punto para IA
+      if (ballX < 0) {
+        aiScore++;
+        document.getElementById('score-ai').innerText = aiScore;
+        checkWin();
+        resetBall(true);
+      }
+
+      // Punto para Jugador
+      if (ballX > W) {
+        pScore++;
+        document.getElementById('score-p').innerText = pScore;
+        checkWin();
+        resetBall(false);
+      }
+
+      // Dibujar
+      ctx.clearRect(0, 0, W, H);
+
+      // Línea central punteada
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)';
+      ctx.setLineDash([8, 8]);
+      ctx.beginPath();
+      ctx.moveTo(W / 2, 0);
+      ctx.lineTo(W / 2, H);
+      ctx.stroke();
+      ctx.setLineDash([]);
+
+      // Partículas
+      for (let i = particles.length - 1; i >= 0; i--) {
+        const pt = particles[i];
+        pt.x += pt.vx; pt.y += pt.vy;
+        pt.alpha -= 0.04;
+        if (pt.alpha <= 0) {
+          particles.splice(i, 1);
+        } else {
+          ctx.fillStyle = pt.color;
+          ctx.globalAlpha = pt.alpha;
+          ctx.fillRect(pt.x, pt.y, 3, 3);
+          ctx.globalAlpha = 1;
+        }
+      }
+
+      // Paleta Jugador (Neón Rosa)
+      ctx.fillStyle = '#ff4d7a';
+      ctx.shadowColor = '#ff4d7a';
+      ctx.shadowBlur = 15;
+      ctx.fillRect(20, pY, PADDLE_W, PADDLE_H);
+
+      // Paleta IA (Neón Cyan)
+      ctx.fillStyle = '#38bdf8';
+      ctx.shadowColor = '#38bdf8';
+      ctx.shadowBlur = 15;
+      ctx.fillRect(W - 20 - PADDLE_W, aiY, PADDLE_W, PADDLE_H);
+
+      // Pelota
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowColor = '#ffffff';
+      ctx.shadowBlur = 12;
+      ctx.beginPath();
+      ctx.arc(ballX, ballY, 6, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.shadowBlur = 0;
+
+      requestAnimationFrame(loop);
+    }
+
+    function checkWin() {
+      if (pScore >= 5 || aiScore >= 5) {
+        running = false;
+        const won = pScore >= 5;
+        document.getElementById('overlay-title').innerText = won ? '¡VICTORIA!' : '¡DERROTA!';
+        document.getElementById('start-overlay').style.display = 'flex';
+      }
+    }
+
+    // Controles Touch y Ratón
+    const container = document.getElementById('container');
+    container.addEventListener('mousemove', e => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleY = H / rect.height;
+      pY = Math.max(0, Math.min(H - PADDLE_H, (e.clientY - rect.top) * scaleY - PADDLE_H / 2));
+    });
+
+    container.addEventListener('touchmove', e => {
+      const rect = canvas.getBoundingClientRect();
+      const scaleY = H / rect.height;
+      pY = Math.max(0, Math.min(H - PADDLE_H, (e.touches[0].clientY - rect.top) * scaleY - PADDLE_H / 2));
+    }, { passive: true });
+
+    // Controles Teclado
+    window.addEventListener('keydown', e => {
+      if (['ArrowUp', 'KeyW'].includes(e.code)) pY = Math.max(0, pY - 25);
+      if (['ArrowDown', 'KeyS'].includes(e.code)) pY = Math.min(H - PADDLE_H, pY + 25);
+    });
+  </script>
+</body>
+</html>

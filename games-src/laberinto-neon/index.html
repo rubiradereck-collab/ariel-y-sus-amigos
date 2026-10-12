@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Laberinto Neón - Source Template</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: radial-gradient(circle at 50% 20%, #1e091d, #09030a 85%);
+      color: #f5eef2;
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 12px;
+      overflow: hidden;
+    }
+    .header { text-align: center; margin-bottom: 8px; }
+    h1 {
+      font-size: 26px; font-weight: 800;
+      background: linear-gradient(135deg, #ff4d7a, #38bdf8);
+      -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+      letter-spacing: 1px;
+    }
+    .status-bar {
+      display: flex; align-items: center; justify-content: space-between;
+      width: 100%; max-width: 440px; margin-bottom: 10px; font-size: 13px;
+    }
+    .pill {
+      background: rgba(255, 255, 255, 0.05);
+      border: 1px solid rgba(255, 255, 255, 0.12);
+      padding: 5px 12px; border-radius: 999px; font-weight: 600;
+    }
+    .btn {
+      background: rgba(255, 77, 122, 0.15);
+      border: 1px solid rgba(255, 77, 122, 0.4);
+      color: #ff8aa6; padding: 5px 14px; border-radius: 10px;
+      font-size: 12px; font-weight: 600; cursor: pointer; transition: all 0.2s;
+    }
+    .btn:hover { background: rgba(255, 77, 122, 0.3); color: #fff; }
+    .canvas-container {
+      position: relative;
+      border: 2px solid rgba(255, 77, 122, 0.4);
+      border-radius: 16px;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.7), 0 0 25px rgba(255, 77, 122, 0.2);
+      background: #0d030c; overflow: hidden; touch-action: none;
+    }
+    canvas { display: block; }
+    .dpad-container {
+      display: grid; grid-template-columns: repeat(3, 44px); grid-template-rows: repeat(2, 40px);
+      gap: 6px; margin-top: 12px; align-items: center; justify-content: center;
+    }
+    .dbtn {
+      background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #f5eef2; border-radius: 10px; display: flex; align-items: center; justify-content: center;
+      font-size: 18px; font-weight: bold; cursor: pointer; user-select: none;
+    }
+    .dbtn:active { background: rgba(255, 77, 122, 0.4); border-color: #ff4d7a; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <h1>LABERINTO NEÓN</h1>
+  </div>
+  <div class="status-bar">
+    <div class="pill">Nivel: <span id="levelText" style="color:#ff4d7a">1</span></div>
+    <div class="pill">⏱️ <span id="timerText">00:00</span></div>
+    <button class="btn" id="restartBtn">Rehacer</button>
+  </div>
+  <div class="canvas-container">
+    <canvas id="canvas" width="400" height="400"></canvas>
+  </div>
+  <div class="dpad-container">
+    <div></div><div class="dbtn" id="btnUp">▲</div><div></div>
+    <div class="dbtn" id="btnLeft">◀</div><div class="dbtn" id="btnDown">▼</div><div class="dbtn" id="btnRight">▶</div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('canvas');
+    const ctx = canvas.getContext('2d');
+    const levelText = document.getElementById('levelText');
+    const timerText = document.getElementById('timerText');
+
+    let level = 1;
+    let gridCols = 11;
+    let gridRows = 11;
+    let maze = [];
+    let player = { x: 1, y: 1 };
+    let goal = { x: 9, y: 9 };
+    let trail = [];
+    let cellSize = 36;
+    let timerSeconds = 0;
+    let timerInterval = null;
+
+    const audioCtx = (typeof AudioContext !== 'undefined' || typeof webkitAudioContext !== 'undefined')
+      ? new (window.AudioContext || window.webkitAudioContext)() : null;
+
+    function playSound(type) {
+      if (!audioCtx) return;
+      try {
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+        if (type === 'step') {
+          osc.frequency.setValueAtTime(320, now);
+          gain.gain.setValueAtTime(0.04, now);
+          gain.gain.linearRampToValueAtTime(0, now + 0.04);
+          osc.start(now);
+          osc.stop(now + 0.04);
+        } else if (type === 'win') {
+          osc.frequency.setValueAtTime(440, now);
+          osc.frequency.setValueAtTime(659, now + 0.1);
+          osc.frequency.setValueAtTime(880, now + 0.2);
+          gain.gain.setValueAtTime(0.15, now);
+          gain.gain.linearRampToValueAtTime(0, now + 0.45);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        }
+      } catch (e) {}
+    }
+
+    function generateMaze(cols, rows) {
+      const grid = Array(rows).fill(null).map(() => Array(cols).fill(1));
+      function carve(x, y) {
+        grid[y][x] = 0;
+        const dirs = [[0, -2], [0, 2], [-2, 0], [2, 0]].sort(() => Math.random() - 0.5);
+        for (let [dx, dy] of dirs) {
+          const nx = x + dx; const ny = y + dy;
+          if (nx > 0 && nx < cols - 1 && ny > 0 && ny < rows - 1 && grid[ny][nx] === 1) {
+            grid[y + dy / 2][x + dx / 2] = 0;
+            carve(nx, ny);
+          }
+        }
+      }
+      carve(1, 1);
+      return grid;
+    }
+
+    function initLevel() {
+      const dim = Math.min(11 + (level - 1) * 2, 25);
+      gridCols = dim % 2 === 0 ? dim + 1 : dim;
+      gridRows = gridCols;
+      maze = generateMaze(gridCols, gridRows);
+      player = { x: 1, y: 1 };
+      goal = { x: gridCols - 2, y: gridRows - 2 };
+      maze[goal.y][goal.x] = 0;
+      trail = [{ x: 1, y: 1 }];
+
+      const maxDisplay = Math.min(window.innerWidth - 32, 400);
+      cellSize = Math.floor(maxDisplay / gridCols);
+      canvas.width = cellSize * gridCols;
+      canvas.height = cellSize * gridRows;
+
+      levelText.textContent = level;
+      draw();
+    }
+
+    function move(dx, dy) {
+      const nx = player.x + dx; const ny = player.y + dy;
+      if (nx >= 0 && nx < gridCols && ny >= 0 && ny < gridRows && maze[ny][nx] === 0) {
+        player.x = nx; player.y = ny;
+        trail.push({ x: nx, y: ny });
+        if (trail.length > 25) trail.shift();
+        playSound('step');
+        draw();
+        if (player.x === goal.x && player.y === goal.y) {
+          playSound('win');
+          setTimeout(() => { level++; initLevel(); }, 300);
+        }
+      }
+    }
+
+    function draw() {
+      ctx.fillStyle = '#0d030c';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.strokeStyle = '#ff4d7a';
+      ctx.fillStyle = 'rgba(255, 77, 122, 0.12)';
+      ctx.lineWidth = 1;
+      ctx.shadowBlur = 8;
+      ctx.shadowColor = '#ff4d7a';
+
+      for (let r = 0; r < gridRows; r++) {
+        for (let c = 0; c < gridCols; c++) {
+          if (maze[r][c] === 1) {
+            ctx.fillRect(c * cellSize, r * cellSize, cellSize, cellSize);
+            ctx.strokeRect(c * cellSize + 1, r * cellSize + 1, cellSize - 2, cellSize - 2);
+          }
+        }
+      }
+
+      ctx.shadowBlur = 0;
+      trail.forEach((t, i) => {
+        const alpha = (i + 1) / trail.length * 0.4;
+        ctx.fillStyle = `rgba(56, 189, 248, ${alpha})`;
+        ctx.beginPath();
+        ctx.arc(t.x * cellSize + cellSize / 2, t.y * cellSize + cellSize / 2, cellSize * 0.2, 0, Math.PI * 2);
+        ctx.fill();
+      });
+
+      ctx.shadowBlur = 15;
+      ctx.shadowColor = '#fbbf24';
+      ctx.fillStyle = '#fbbf24';
+      ctx.beginPath();
+      ctx.arc(goal.x * cellSize + cellSize / 2, goal.y * cellSize + cellSize / 2, cellSize * 0.38, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.shadowBlur = 18;
+      ctx.shadowColor = '#38bdf8';
+      ctx.fillStyle = '#38bdf8';
+      ctx.beginPath();
+      ctx.arc(player.x * cellSize + cellSize / 2, player.y * cellSize + cellSize / 2, cellSize * 0.35, 0, Math.PI * 2);
+      ctx.fill();
+
+      ctx.fillStyle = '#ffffff';
+      ctx.beginPath();
+      ctx.arc(player.x * cellSize + cellSize / 2 - 2, player.y * cellSize + cellSize / 2 - 2, cellSize * 0.12, 0, Math.PI * 2);
+      ctx.fill();
+    }
+
+    window.addEventListener('keydown', (e) => {
+      if (['ArrowUp', 'KeyW'].includes(e.code)) { e.preventDefault(); move(0, -1); }
+      if (['ArrowDown', 'KeyS'].includes(e.code)) { e.preventDefault(); move(0, 1); }
+      if (['ArrowLeft', 'KeyA'].includes(e.code)) { e.preventDefault(); move(-1, 0); }
+      if (['ArrowRight', 'KeyD'].includes(e.code)) { e.preventDefault(); move(1, 0); }
+    });
+
+    document.getElementById('btnUp').addEventListener('click', () => move(0, -1));
+    document.getElementById('btnDown').addEventListener('click', () => move(0, 1));
+    document.getElementById('btnLeft').addEventListener('click', () => move(-1, 0));
+    document.getElementById('btnRight').addEventListener('click', () => move(1, 0));
+    document.getElementById('restartBtn').addEventListener('click', initLevel);
+
+    timerInterval = setInterval(() => {
+      timerSeconds++;
+      const m = Math.floor(timerSeconds / 60).toString().padStart(2, '0');
+      const s = (timerSeconds % 60).toString().padStart(2, '0');
+      timerText.textContent = `${m}:${s}`;
+    }, 1000);
+
+    initLevel();
+  </script>
+</body>
+</html>

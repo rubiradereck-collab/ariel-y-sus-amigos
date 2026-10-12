@@ -1,0 +1,247 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>Buscaminas Arcade</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
+    body {
+      background: #0d040a;
+      color: #f5eef2;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 16px;
+    }
+    .panel {
+      background: rgba(255, 255, 255, 0.03);
+      border: 2px solid rgba(255, 77, 122, 0.2);
+      border-radius: 20px;
+      padding: 18px;
+      max-width: 400px;
+      width: 100%;
+      box-shadow: 0 10px 40px rgba(0,0,0,0.6);
+    }
+    .header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: rgba(0,0,0,0.4);
+      padding: 10px 14px;
+      border-radius: 14px;
+      border: 1px solid rgba(255,255,255,0.08);
+      margin-bottom: 16px;
+    }
+    .counter {
+      font-family: monospace;
+      font-size: 20px;
+      font-weight: 900;
+      color: #ff4d7a;
+      min-width: 50px;
+    }
+    .face-btn {
+      font-size: 24px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      transition: transform 0.1s;
+    }
+    .face-btn:active { transform: scale(0.9); }
+    .grid {
+      display: grid;
+      grid-template-columns: repeat(9, 1fr);
+      gap: 5px;
+      aspect-ratio: 1;
+      width: 100%;
+    }
+    .cell {
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 14px;
+      font-weight: 900;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+    .cell:hover { background: rgba(255, 77, 122, 0.15); border-color: rgba(255, 77, 122, 0.4); }
+    .cell.revealed {
+      background: rgba(0, 0, 0, 0.45);
+      border-color: rgba(255, 255, 255, 0.04);
+      cursor: default;
+    }
+    .cell.mine { background: #dc2626 !important; color: #fff; }
+    .cell.flag { color: #facc15; }
+    .c-1 { color: #38bdf8; }
+    .c-2 { color: #4ade80; }
+    .c-3 { color: #f87171; }
+    .c-4 { color: #c084fc; }
+    .c-5 { color: #fbbf24; }
+    .c-6 { color: #2dd4bf; }
+    .help {
+      font-size: 11px;
+      color: #b7a3ad;
+      text-align: center;
+      margin-top: 14px;
+      font-weight: 600;
+    }
+  </style>
+</head>
+<body>
+  <div class="panel">
+    <div class="header">
+      <div class="counter" id="mine-count">010</div>
+      <button class="face-btn" id="face" onclick="initGame()">🙂</button>
+      <div class="counter" id="timer" style="text-align: right;">000</div>
+    </div>
+    <div class="grid" id="grid"></div>
+    <div class="help">Clic normal: descubrir • Clic derecho / Mantener: marcar 🚩</div>
+  </div>
+
+  <script>
+    const ROWS = 9, COLS = 9, MINES = 10;
+    let grid = [], revealedCount = 0, flags = 0, gameOver = false, timer = 0, interval = null, started = false;
+
+    function initGame() {
+      clearInterval(interval);
+      timer = 0; started = false; gameOver = false; revealedCount = 0; flags = 0;
+      document.getElementById('timer').innerText = '000';
+      document.getElementById('mine-count').innerText = '010';
+      document.getElementById('face').innerText = '🙂';
+
+      grid = Array(ROWS).fill(null).map(() => Array(COLS).fill(null).map(() => ({
+        mine: false, revealed: false, flag: false, count: 0
+      })));
+
+      // Colocar minas
+      let placed = 0;
+      while (placed < MINES) {
+        let r = Math.floor(Math.random() * ROWS);
+        let c = Math.floor(Math.random() * COLS);
+        if (!grid[r][c].mine) {
+          grid[r][c].mine = true;
+          placed++;
+        }
+      }
+
+      // Calcular números
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          if (!grid[r][c].mine) {
+            let n = 0;
+            for (let dr = -1; dr <= 1; dr++) {
+              for (let dc = -1; dc <= 1; dc++) {
+                let nr = r + dr, nc = c + dc;
+                if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS && grid[nr][nc].mine) n++;
+              }
+            }
+            grid[r][c].count = n;
+          }
+        }
+      }
+
+      render();
+    }
+
+    function render() {
+      const container = document.getElementById('grid');
+      container.innerHTML = '';
+      for (let r = 0; r < ROWS; r++) {
+        for (let c = 0; c < COLS; c++) {
+          const cell = grid[r][c];
+          const el = document.createElement('div');
+          el.className = 'cell';
+          if (cell.revealed) {
+            el.classList.add('revealed');
+            if (cell.mine) {
+              el.classList.add('mine');
+              el.innerText = '💣';
+            } else if (cell.count > 0) {
+              el.innerText = cell.count;
+              el.classList.add('c-' + cell.count);
+            }
+          } else if (cell.flag) {
+            el.classList.add('flag');
+            el.innerText = '🚩';
+          }
+
+          el.onclick = () => reveal(r, c);
+          el.oncontextmenu = (e) => { e.preventDefault(); toggleFlag(r, c); };
+
+          // Touch long press
+          let pressTimer;
+          el.ontouchstart = () => { pressTimer = setTimeout(() => toggleFlag(r, c), 400); };
+          el.ontouchend = () => clearTimeout(pressTimer);
+
+          container.appendChild(el);
+        }
+      }
+    }
+
+    function startTimer() {
+      if (!started) {
+        started = true;
+        interval = setInterval(() => {
+          timer++;
+          document.getElementById('timer').innerText = String(timer).padStart(3, '0');
+        }, 1000);
+      }
+    }
+
+    function reveal(r, c) {
+      if (gameOver || grid[r][c].revealed || grid[r][c].flag) return;
+      startTimer();
+
+      const cell = grid[r][c];
+      cell.revealed = true;
+      revealedCount++;
+
+      if (cell.mine) {
+        gameOver = true;
+        clearInterval(interval);
+        document.getElementById('face').innerText = '💀';
+        // Revelar todas las minas
+        grid.forEach(row => row.forEach(cl => { if (cl.mine) cl.revealed = true; }));
+        render();
+        return;
+      }
+
+      if (cell.count === 0) {
+        for (let dr = -1; dr <= 1; dr++) {
+          for (let dc = -1; dc <= 1; dc++) {
+            let nr = r + dr, nc = c + dc;
+            if (nr >= 0 && nr < ROWS && nc >= 0 && nc < COLS) reveal(nr, nc);
+          }
+        }
+      }
+
+      // Comprobar victoria
+      if (revealedCount === ROWS * COLS - MINES) {
+        gameOver = true;
+        clearInterval(interval);
+        document.getElementById('face').innerText = '😎';
+      }
+
+      render();
+    }
+
+    function toggleFlag(r, c) {
+      if (gameOver || grid[r][c].revealed) return;
+      startTimer();
+      const cell = grid[r][c];
+      cell.flag = !cell.flag;
+      flags += cell.flag ? 1 : -1;
+      document.getElementById('mine-count').innerText = String(Math.max(0, MINES - flags)).padStart(3, '0');
+      render();
+    }
+
+    initGame();
+  </script>
+</body>
+</html>

@@ -1,0 +1,38 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
+  <defs>
+    <linearGradient id="bgMaze" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1c071d"/>
+      <stop offset="50%" stop-color="#2a0d26"/>
+      <stop offset="100%" stop-color="#0a020c"/>
+    </linearGradient>
+    <filter id="glowMaze" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="640" height="400" fill="url(#bgMaze)"/>
+  
+  <!-- Paredes del laberinto neón -->
+  <g stroke="#ff4d7a" stroke-width="8" stroke-linecap="round" stroke-linejoin="round" filter="url(#glowMaze)">
+    <path d="M 120 70 L 520 70 L 520 330 L 120 330 Z" fill="none" opacity="0.6"/>
+    <path d="M 180 70 L 180 210 L 260 210 L 260 130 L 360 130" fill="none"/>
+    <path d="M 260 270 L 360 270 L 360 190 L 460 190" fill="none"/>
+    <path d="M 420 70 L 420 130" fill="none"/>
+    <path d="M 180 270 L 180 330" fill="none"/>
+  </g>
+
+  <!-- Orbe del jugador -->
+  <g transform="translate(150, 150)" filter="url(#glowMaze)">
+    <circle cx="0" cy="0" r="18" fill="#38bdf8"/>
+    <circle cx="0" cy="0" r="10" fill="#ffffff"/>
+  </g>
+
+  <!-- Meta o Portal Dorado -->
+  <g transform="translate(480, 260)" filter="url(#glowMaze)">
+    <circle cx="0" cy="0" r="22" fill="#fbbf24"/>
+    <circle cx="0" cy="0" r="12" fill="#fef08a"/>
+  </g>
+</svg>

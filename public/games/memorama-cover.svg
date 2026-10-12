@@ -1,0 +1,41 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" width="640" height="400">
+  <defs>
+    <linearGradient id="bgMemo" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#19071c"/>
+      <stop offset="50%" stop-color="#2a0a2c"/>
+      <stop offset="100%" stop-color="#0a020d"/>
+    </linearGradient>
+    <linearGradient id="cardGrad1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#ff4d7a"/>
+      <stop offset="100%" stop-color="#7c3aed"/>
+    </linearGradient>
+    <filter id="glowMemo" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="8" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="640" height="400" fill="url(#bgMemo)"/>
+  
+  <!-- Cartas en perspectiva / rotadas -->
+  <g transform="translate(130, 80) rotate(-8)" filter="url(#glowMemo)">
+    <rect x="0" y="0" width="130" height="190" rx="16" fill="rgba(255,255,255,0.06)" stroke="#a855f7" stroke-width="2.5"/>
+    <rect x="12" y="12" width="106" height="166" rx="10" fill="none" stroke="rgba(168,85,247,0.3)" stroke-dasharray="8,6"/>
+    <text x="65" y="115" font-size="52" text-anchor="middle">💎</text>
+  </g>
+
+  <g transform="translate(255, 60)" filter="url(#glowMemo)">
+    <rect x="0" y="0" width="140" height="210" rx="18" fill="url(#cardGrad1)"/>
+    <circle cx="70" cy="95" r="45" fill="rgba(255,255,255,0.15)"/>
+    <text x="70" y="115" font-size="64" text-anchor="middle">👑</text>
+    <rect x="10" y="10" width="120" height="190" rx="12" fill="none" stroke="rgba(255,255,255,0.3)" stroke-width="2"/>
+  </g>
+
+  <g transform="translate(410, 95) rotate(10)" filter="url(#glowMemo)">
+    <rect x="0" y="0" width="130" height="190" rx="16" fill="rgba(255,255,255,0.06)" stroke="#ff4d7a" stroke-width="2.5"/>
+    <rect x="12" y="12" width="106" height="166" rx="10" fill="none" stroke="rgba(255,77,122,0.3)" stroke-dasharray="8,6"/>
+    <text x="65" y="115" font-size="52" text-anchor="middle">👑</text>
+  </g>
+</svg>

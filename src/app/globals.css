@@ -13,6 +13,15 @@
   --color-border: #27272a; /* Zinc 800 */
   --color-neon-purple: #c084fc;
   --color-neon-blue: #60a5fa;
+  --color-gamer-dark: #14070f;
+  --color-gamer-dark-2: #2a0e22;
+  --color-gamer-accent: #ff4d7a;
+  --color-gamer-accent-hover: #e8365d;
+  --color-gamer-violet: #7c3aed;
+  --color-gamer-text: #f5eef2;
+  --color-gamer-muted: #b7a3ad;
+  --color-gamer-surface: rgba(255, 255, 255, 0.04);
+  --color-gamer-border: rgba(255, 255, 255, 0.1);
 
   --font-sans: var(--font-geist-sans);
   --font-mono: var(--font-geist-mono);
