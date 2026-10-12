@@ -329,6 +329,16 @@ export default function ChatPage() {
       setMessages(prev => prev.map(m => m.id === tempId ? data : m))
     }
 
+    // Recompensa de monedas por chatear (+2 🪙)
+    void (async () => {
+      try {
+        const { data: coinRes } = (await supabase.rpc('claim_chat_coin')) as any
+        if (coinRes?.success && coinRes?.coins_awarded) {
+          toast.success(`+${coinRes.coins_awarded} 🪙 por chatear`, { duration: 1800 })
+        }
+      } catch {}
+    })()
+
     const lowerContent = content.toLowerCase()
     if (['/minar', '/pescar', '/kiss', '/kill', '/punch', '/ship', '/meme'].some(cmd => lowerContent.includes(cmd))) {
       setTimeout(() => {

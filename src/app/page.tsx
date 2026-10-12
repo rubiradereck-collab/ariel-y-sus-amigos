@@ -6,8 +6,9 @@ import Link from "next/link"
 import { useState, useEffect, useRef } from "react"
 import { 
   Play, MessageSquare, Gamepad2, ImageIcon, Users, ChevronRight, ChevronLeft,
-  Pickaxe, Coins, Sparkles, Flame, Shield, ArrowRight
+  Pickaxe, Coins, Sparkles, Flame, Shield, ArrowRight, Gift
 } from "lucide-react"
+import { RewardsHubModal } from "@/components/rewards/RewardsHubModal"
 
 interface PS5Game {
   id: string
@@ -127,6 +128,7 @@ const games: PS5Game[] = [
 
 export default function Home() {
   const [selectedIndex, setSelectedIndex] = useState(0)
+  const [rewardsOpen, setRewardsOpen] = useState(false)
   const activeGame = games[selectedIndex]
   const carouselContainerRef = useRef<HTMLDivElement>(null)
   const cardRefs = useRef<(HTMLDivElement | null)[]>([])
@@ -271,7 +273,7 @@ export default function Home() {
               </p>
 
               {/* BOTÓN CTA PRINCIPAL Y CONTROLES */}
-              <div className="pt-2 md:pt-3 flex items-center gap-4">
+              <div className="pt-2 md:pt-3 flex flex-wrap items-center gap-3 md:gap-4">
                 <Link href={activeGame.path}>
                   <motion.button 
                     whileHover={{ scale: 1.05 }}
@@ -282,10 +284,24 @@ export default function Home() {
                   </motion.button>
                 </Link>
 
+                <motion.button 
+                  whileHover={{ scale: 1.05 }}
+                  whileTap={{ scale: 0.95 }}
+                  onClick={() => setRewardsOpen(true)}
+                  className="bg-gradient-to-r from-yellow-500/20 via-amber-500/20 to-yellow-600/20 hover:from-yellow-500/30 hover:to-amber-500/30 text-yellow-300 border border-yellow-400/40 font-black px-5 py-3 rounded-full flex items-center gap-2 uppercase tracking-wider text-xs md:text-sm shadow-[0_0_25px_rgba(234,179,8,0.25)] transition-all cursor-pointer backdrop-blur"
+                >
+                  <Gift className="w-4 h-4 text-yellow-400" /> Recompensas & Ruleta
+                </motion.button>
+
                 <span className="text-[11px] text-white/50 font-mono hidden md:inline-flex items-center gap-1.5">
                   Navega con <kbd className="bg-white/15 px-2 py-0.5 rounded text-white font-bold">◀</kbd> <kbd className="bg-white/15 px-2 py-0.5 rounded text-white font-bold">▶</kbd> o flechas laterales
                 </span>
               </div>
+
+              <RewardsHubModal
+                isOpen={rewardsOpen}
+                onClose={() => setRewardsOpen(false)}
+              />
 
             </motion.div>
           </AnimatePresence>
