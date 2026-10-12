@@ -184,7 +184,8 @@ export default function MusicaPage() {
           setResults(searchRes)
         }
       }
-    } catch {
+    } catch (err) {
+      console.error('Error al procesar enlace o búsqueda:', err)
       toast.error('Ocurrió un error al procesar el enlace o búsqueda.')
     } finally {
       setWorking(false)

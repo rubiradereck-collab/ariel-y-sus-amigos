@@ -507,10 +507,16 @@ export function MusicProvider({ children }: { children: ReactNode }) {
   )
 
   const search = useCallback(async (q: string): Promise<SearchResult[] | 'no_api_key'> => {
-    const r = await fetch(`/api/yt?q=${encodeURIComponent(q)}`)
-    if (r.status === 503) return 'no_api_key'
-    if (!r.ok) throw new Error('search_failed')
-    return ((await r.json()) as { results: SearchResult[] }).results
+    try {
+      const r = await fetch(`/api/yt?q=${encodeURIComponent(q)}`)
+      if (r.status === 503) return 'no_api_key'
+      if (!r.ok) return []
+      const data = (await r.json()) as { results?: SearchResult[] }
+      return data?.results ?? []
+    } catch (err) {
+      console.error('Music search fetch error:', err)
+      return []
+    }
   }, [])
 
   const value = useMemo<MusicContextValue>(
