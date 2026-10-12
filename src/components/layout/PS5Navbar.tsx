@@ -11,6 +11,7 @@ import { motion, AnimatePresence } from "framer-motion"
 import { useState, useEffect, useRef } from "react"
 import { createClient } from "@/lib/supabase/client"
 import { toast } from "sonner"
+import { useWallUnread } from "@/hooks/useWallUnread"
 
 const navItems = [
   { name: 'INICIO', path: '/', icon: Home },
@@ -43,6 +44,7 @@ export function PS5Navbar({ currentTheme = 'cyan' }: { currentTheme?: string }) 
   const supabase = createClient()
   const router = useRouter()
   const [showUserMenu, setShowUserMenu] = useState(false)
+  const unreadCount = useWallUnread((s) => s.count)
 
   const navScrollRef = useRef<HTMLDivElement>(null)
   const [canScrollLeft, setCanScrollLeft] = useState(false)
@@ -165,6 +167,11 @@ export function PS5Navbar({ currentTheme = 'cyan' }: { currentTheme?: string }) 
                   }`}>
                     {item.name}
                   </span>
+                  {item.path === '/muro' && unreadCount > 0 && (
+                    <span className="ml-0.5 px-1.5 py-0.2 bg-red-600 text-white text-[9px] font-black rounded-full shadow-[0_0_8px_rgba(239,68,68,0.9)] animate-pulse">
+                      {unreadCount > 99 ? '99+' : unreadCount}
+                    </span>
+                  )}
                   {isActive && (
                     <motion.div 
                       layoutId="activeNav"

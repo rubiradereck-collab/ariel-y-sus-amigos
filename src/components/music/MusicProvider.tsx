@@ -47,6 +47,7 @@ export interface SearchResult {
   title: string
   channel: string
   thumb: string | null
+  durationSec?: number
 }
 
 export interface AddInput {
@@ -54,6 +55,7 @@ export interface AddInput {
   videoId?: string
   title?: string
   thumb?: string | null
+  durationSec?: number
 }
 
 interface MusicContextValue {
@@ -68,6 +70,10 @@ interface MusicContextValue {
   autoplayBlocked: boolean
   resume: () => void
   addTrack: (input: AddInput) => Promise<boolean>
+  addTrackWithId: (input: AddInput) => Promise<{ ok: boolean; id?: string }>
+  addTracks: (items: AddInput[]) => Promise<{ added: number; skipped: number } | null>
+  removeMine: (id: string) => Promise<boolean>
+  clearMine: () => Promise<number>
   voteSkip: (id: string) => Promise<void>
   search: (q: string) => Promise<SearchResult[] | 'no_api_key'>
 }
@@ -83,7 +89,8 @@ export function useMusic(): MusicContextValue {
 const SKIP_VOTES_NEEDED = 3 // igual que music_vote_skip en supabase_update.sql
 
 const MUSIC_ERRORS: Record<string, string> = {
-  queue_limit: 'Ya tienes 5 canciones en la cola. Espera a que suenen.',
+  queue_limit: 'Ya tienes 50 canciones en la cola. Espera a que suenen.',
+  invalid_items: 'La lista de canciones no es válida.',
   invalid_url: 'Enlace no válido (debe ser https).',
   invalid_video: 'No se reconoció el video de YouTube.',
   not_authenticated: 'Tu sesión expiró, vuelve a iniciar sesión.',
@@ -348,8 +355,8 @@ export function MusicProvider({ children }: { children: ReactNode }) {
     setNonce((n) => n + 1)
   }, [])
 
-  const addTrack = useCallback(
-    async (input: AddInput): Promise<boolean> => {
+  const addTrackWithId = useCallback(
+    async (input: AddInput): Promise<{ ok: boolean; id?: string }> => {
       const raw = (input.url ?? '').trim()
       const ytId = input.videoId ?? extractYouTubeId(raw)
 
@@ -384,11 +391,11 @@ export function MusicProvider({ children }: { children: ReactNode }) {
           u = new URL(raw)
         } catch {
           toast.error('Enlace no válido.')
-          return false
+          return { ok: false }
         }
         if (u.protocol !== 'https:') {
           toast.error('Solo se admiten enlaces https.')
-          return false
+          return { ok: false }
         }
         let fileName = u.hostname
         try {
@@ -405,14 +412,82 @@ export function MusicProvider({ children }: { children: ReactNode }) {
         }
       }
 
-      const { error } = await supabase.rpc('music_add', payload)
+      const { data, error } = await supabase.rpc('music_add', payload)
+      if (error) {
+        toast.error(musicError(error.message))
+        return { ok: false }
+      }
+      toast.success('Agregada a la cola 🎶')
+      await refresh()
+      return { ok: true, id: data?.id }
+    },
+    [supabase, refresh]
+  )
+
+  const addTrack = useCallback(
+    async (input: AddInput): Promise<boolean> => {
+      const res = await addTrackWithId(input)
+      return res.ok
+    },
+    [addTrackWithId]
+  )
+
+  const addTracks = useCallback(
+    async (items: AddInput[]): Promise<{ added: number; skipped: number } | null> => {
+      if (!items.length) return { added: 0, skipped: 0 }
+      let totalAdded = 0
+      let totalSkipped = 0
+
+      for (let i = 0; i < items.length; i += 50) {
+        const chunk = items.slice(i, i + 50)
+        const p_items = chunk.map((c) => {
+          const ytId = c.videoId ?? extractYouTubeId(c.url ?? '')
+          return {
+            title: c.title ?? 'Sin título',
+            url: ytId ? `https://www.youtube.com/watch?v=${ytId}` : (c.url ?? ''),
+            kind: ytId ? 'youtube' : 'audio',
+            video_id: ytId ?? null,
+            thumb: c.thumb ?? (ytId ? `https://i.ytimg.com/vi/${ytId}/mqdefault.jpg` : null),
+          }
+        })
+
+        const { data, error } = await supabase.rpc('music_add_many', { p_items })
+        if (error) {
+          toast.error(musicError(error.message))
+          return null
+        }
+        totalAdded += (data as any)?.added ?? 0
+        totalSkipped += (data as any)?.skipped ?? 0
+      }
+
+      await refresh()
+      return { added: totalAdded, skipped: totalSkipped }
+    },
+    [supabase, refresh]
+  )
+
+  const removeMine = useCallback(
+    async (id: string): Promise<boolean> => {
+      const { data, error } = await supabase.rpc('music_remove', { p_id: id })
       if (error) {
         toast.error(musicError(error.message))
         return false
       }
-      toast.success('Agregada a la cola 🎶')
       await refresh()
-      return true
+      return (data as any)?.removed ?? false
+    },
+    [supabase, refresh]
+  )
+
+  const clearMine = useCallback(
+    async (): Promise<number> => {
+      const { data, error } = await supabase.rpc('music_clear_mine')
+      if (error) {
+        toast.error(musicError(error.message))
+        return 0
+      }
+      await refresh()
+      return (data as any)?.removed ?? 0
     },
     [supabase, refresh]
   )
@@ -451,10 +526,31 @@ export function MusicProvider({ children }: { children: ReactNode }) {
       autoplayBlocked,
       resume,
       addTrack,
+      addTrackWithId,
+      addTracks,
+      removeMine,
+      clearMine,
       voteSkip,
       search,
     }),
-    [userId, current, queue, elapsed, listening, volume, setVolume, autoplayBlocked, resume, addTrack, voteSkip, search]
+    [
+      userId,
+      current,
+      queue,
+      elapsed,
+      listening,
+      volume,
+      setVolume,
+      autoplayBlocked,
+      resume,
+      addTrack,
+      addTrackWithId,
+      addTracks,
+      removeMine,
+      clearMine,
+      voteSkip,
+      search,
+    ]
   )
 
   return (

@@ -18,9 +18,10 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import { motion } from 'framer-motion'
+import { useWallUnread } from '@/hooks/useWallUnread'
 
 const navItems = [
-  { name: 'El Muro', href: '/', icon: Home },
+  { name: 'El Muro', href: '/muro', icon: Home },
   { name: 'Chat', href: '/chat', icon: MessageSquare },
   { name: 'Integrantes', href: '/profiles', icon: Users },
   { name: 'Memes', href: '/memes', icon: ImageIcon },
@@ -50,6 +51,8 @@ export function Sidebar() {
     router.push('/login')
     router.refresh()
   }
+
+  const unreadCount = useWallUnread((s) => s.count)
 
   return (
     <div className="w-64 border-r border-white/10 bg-black/40 backdrop-blur-3xl h-screen flex flex-col fixed left-0 top-0 shadow-[4px_0_24px_rgba(139,92,246,0.05)]">
@@ -90,7 +93,12 @@ export function Sidebar() {
                 />
               )}
               <Icon className={cn("w-5 h-5 relative z-10 transition-transform duration-300 group-hover:scale-110", isActive && "text-primary drop-shadow-[0_0_8px_rgba(139,92,246,0.8)]")} />
-              <span className="font-medium text-sm relative z-10">{item.name}</span>
+              <span className="font-medium text-sm relative z-10 flex-1">{item.name}</span>
+              {item.href === '/muro' && unreadCount > 0 && (
+                <span className="relative z-10 px-2 py-0.5 bg-red-600 text-white text-[10px] font-black rounded-full shadow-[0_0_8px_rgba(239,68,68,0.8)]">
+                  {unreadCount > 99 ? '99+' : unreadCount}
+                </span>
+              )}
             </Link>
           )
         })}

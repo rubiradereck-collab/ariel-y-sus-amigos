@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
 import { MusicProvider } from "@/components/music/MusicProvider";
+import { LocalLibraryProvider } from "@/components/music/LocalLibraryProvider";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -41,9 +42,11 @@ export default function RootLayout({
         )}
       >
         <MusicProvider>
-          <div className="relative flex min-h-screen flex-col">
-            {children}
-          </div>
+          <LocalLibraryProvider>
+            <div className="relative flex min-h-screen flex-col">
+              {children}
+            </div>
+          </LocalLibraryProvider>
         </MusicProvider>
       </body>
     </html>

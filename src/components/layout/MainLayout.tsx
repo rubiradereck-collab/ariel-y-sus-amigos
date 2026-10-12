@@ -7,15 +7,37 @@ import { Toaster, toast } from "sonner"
 import { motion, AnimatePresence } from "framer-motion"
 import { Gamepad2 } from "lucide-react"
 import { createClient } from "@/lib/supabase/client"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
+import { useWallUnread } from "@/hooks/useWallUnread"
 
 export function MainLayout({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(false)
   const [globalTheme, setGlobalTheme] = useState('cyan')
   const [activeLFGAlert, setActiveLFGAlert] = useState<any>(null)
   const pathname = usePathname()
+  const router = useRouter()
 
   const supabase = createClient()
+
+  useEffect(() => {
+    useWallUnread.getState().init()
+    const unsub = useWallUnread.subscribe((state) => {
+      if (state.ready && state.count > 0) {
+        try {
+          if (!sessionStorage.getItem('wall-toast')) {
+            sessionStorage.setItem('wall-toast', 'true')
+            toast(`📰 Tienes ${state.count} ${state.count === 1 ? 'publicación nueva' : 'publicaciones nuevas'} en el Muro`, {
+              action: {
+                label: 'Ver Muro',
+                onClick: () => router.push('/muro')
+              }
+            })
+          }
+        } catch {}
+      }
+    })
+    return () => unsub()
+  }, [router])
 
   // Alarma acústica potente generada por Web Audio API
   const playLoudAlarmSound = () => {
