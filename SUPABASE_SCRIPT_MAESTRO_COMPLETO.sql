@@ -860,3 +860,453 @@ BEGIN
   END LOOP;
 END $$;
 
+
+-- =====================================================================
+-- PARTE 3: AVENTURA & RECOLECCIÓN (EXPANSIÓN RPG Y CORRECCIÓN DE FÓRMULA DE NIVEL)
+-- =====================================================================
+-- =====================================================================
+-- ARIEL Y SUS AMIGOS (Y JOEL) · supabase_aventura.sql
+-- Idempotente. Ejecutar DESPUÉS de supabase_rpg_schema.sql, economia_v2.sql y supabase_update.sql.
+--
+-- SUPUESTOS (no vi el cuerpo de tus funciones mine / fish_cast / fish_reel):
+--  * Estas RPCs nuevas (adv_*) NO tocan ni reemplazan las tuyas. Comparten tablas y cooldowns
+--    (mine_ready_at, fish_ready_at), así que conviven sin problema.
+--  * Capacidad de mochila = 30 + 20 * backpack_level (la misma fórmula de rpg.ts). Es un tope
+--    "suave": se comprueba antes de la acción; una acción puede pasarse por unos pocos objetos.
+--  * XP por objeto según rareza: común 2 · raro 6 · épico 15 · legendario 40 · mítico 100.
+-- =====================================================================
+
+-- ---------------------------------------------------------------------
+-- 0. CORRECCIÓN: unificar XP/nivel con el sistema RPG
+--    Fuente de verdad: lifetime_xp. Nivel = floor(sqrt(lifetime_xp / 25)) + 1.
+--    xp_total (de economia_v2) pasa a ser un espejo de lifetime_xp.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.level_for(p_xp bigint) RETURNS int
+LANGUAGE sql IMMUTABLE AS $$
+  SELECT floor(sqrt(p_xp / 25.0))::int + 1;
+$$;
+
+CREATE OR REPLACE FUNCTION public.user_stats_sync() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  NEW.xp_total := NEW.lifetime_xp;
+  NEW.level := public.level_for(NEW.lifetime_xp);
+  RETURN NEW;
+END $$;
+
+DROP TRIGGER IF EXISTS trg_user_stats_sync ON public.user_stats;
+CREATE TRIGGER trg_user_stats_sync
+  BEFORE INSERT OR UPDATE ON public.user_stats
+  FOR EACH ROW EXECUTE FUNCTION public.user_stats_sync();
+
+-- Re-sincroniza a todos los jugadores existentes (el UPDATE dispara el trigger)
+UPDATE public.user_stats SET lifetime_xp = lifetime_xp;
+
+-- coins nunca negativo (el esquema RPG original no tenía este CHECK)
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_constraint WHERE conname = 'user_stats_coins_nonneg') THEN
+    ALTER TABLE public.user_stats ADD CONSTRAINT user_stats_coins_nonneg CHECK (coins >= 0);
+  END IF;
+END $$;
+
+-- record_game: ahora suma a xp y lifetime_xp (el trigger recalcula el nivel)
+CREATE OR REPLACE FUNCTION public.record_game(p_user uuid, p_game text, p_bet bigint, p_payout bigint)
+RETURNS void LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_mult numeric; v_gain bigint;
+BEGIN
+  INSERT INTO public.game_history (user_id, game, bet, payout) VALUES (p_user, p_game, p_bet, p_payout);
+  SELECT CASE WHEN xp_boost_until > now() THEN xp_boost_mult ELSE 1 END
+    INTO v_mult FROM public.user_stats WHERE user_id = p_user;
+  v_gain := greatest(1, floor(p_bet / 20.0 * v_mult))::bigint;
+  UPDATE public.user_stats SET
+    total_wagered = total_wagered + p_bet,
+    biggest_win = greatest(biggest_win, p_payout),
+    xp = xp + v_gain,
+    lifetime_xp = lifetime_xp + v_gain,
+    updated_at = now()
+  WHERE user_id = p_user;
+END $$;
+
+-- check_achievements: igual que antes, pero la XP va a xp y lifetime_xp
+CREATE OR REPLACE FUNCTION public.check_achievements()
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_uid uuid := auth.uid(); r record; v_new jsonb := '[]'::jsonb;
+BEGIN
+  IF v_uid IS NULL THEN RAISE EXCEPTION 'not_authenticated'; END IF;
+  PERFORM public.ensure_user_stats(v_uid);
+  FOR r IN
+    SELECT a.id, a.xp_reward FROM public.achievements a
+     WHERE NOT EXISTS (SELECT 1 FROM public.user_achievements ua WHERE ua.user_id = v_uid AND ua.achievement_id = a.id)
+       AND CASE a.id
+             WHEN 'first_blood'  THEN EXISTS (SELECT 1 FROM public.messages WHERE sender_id = v_uid)
+             WHEN 'wall_breaker' THEN EXISTS (SELECT 1 FROM public.posts WHERE author_id = v_uid)
+             WHEN 'meme_lord'    THEN EXISTS (SELECT 1 FROM public.memories WHERE author_id = v_uid AND type = 'meme')
+             ELSE false
+           END
+  LOOP
+    INSERT INTO public.user_achievements (user_id, achievement_id) VALUES (v_uid, r.id) ON CONFLICT DO NOTHING;
+    IF FOUND THEN
+      PERFORM public.economy_apply(v_uid, r.xp_reward, 'achievement:' || r.id, r.id);
+      UPDATE public.user_stats
+         SET xp = xp + r.xp_reward, lifetime_xp = lifetime_xp + r.xp_reward
+       WHERE user_id = v_uid;
+      v_new := v_new || jsonb_build_array(r.id);
+    END IF;
+  END LOOP;
+  RETURN jsonb_build_object('unlocked', v_new);
+END $$;
+
+-- ---------------------------------------------------------------------
+-- 1. OBJETOS NUEVOS (si ya existen con el mismo id, se respetan los tuyos)
+-- ---------------------------------------------------------------------
+INSERT INTO public.items (id, name, emoji, category, rarity, sell_price, buy_price, description) VALUES
+  ('dinamita',           'Dinamita',           '🧨', 'consumible', 'comun',  5,   40,  'Detona 3 bloques de golpe y puede revelar geodas raras.'),
+  ('antorcha',           'Antorcha',           '🔦', 'consumible', 'comun',  5,   60,  'Ilumina la veta profunda: mucha más probabilidad de minerales épicos o mejores.'),
+  ('pocion_suerte',      'Poción de Suerte',   '🧪', 'consumible', 'raro',   20,  150, 'Durante 30 segundos duplica los minerales que obtienes.'),
+  ('geoda',              'Geoda',              '🔮', 'mineral',    'epico',  120, NULL,'Una roca hueca llena de cristales brillantes.'),
+  ('carnada_brillante',  'Carnada Brillante',  '✨', 'consumible', 'raro',   15,  80,  'Atrae peces raros: el doble de probabilidad de capturas especiales.'),
+  ('carnada_legendaria', 'Carnada Legendaria', '🌟', 'consumible', 'epico',  60,  400, 'Los peces legendarios no pueden resistirse. Mucho más probable un pez épico o mejor.')
+ON CONFLICT (id) DO NOTHING;
+
+-- ---------------------------------------------------------------------
+-- 2. FUNCIONES INTERNAS
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.adv_give(p_uid uuid, p_item text, p_qty int) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  IF p_qty <= 0 THEN RETURN; END IF;
+  INSERT INTO public.inventory (user_id, item_id, qty) VALUES (p_uid, p_item, p_qty)
+  ON CONFLICT (user_id, item_id) DO UPDATE SET qty = public.inventory.qty + EXCLUDED.qty;
+END $$;
+
+-- Consume 1 unidad. inventory.qty tiene CHECK (qty > 0): si queda en 0 se borra la fila.
+CREATE OR REPLACE FUNCTION public.adv_consume(p_uid uuid, p_item text) RETURNS void
+LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+BEGIN
+  DELETE FROM public.inventory WHERE user_id = p_uid AND item_id = p_item AND qty = 1;
+  IF FOUND THEN RETURN; END IF;
+  UPDATE public.inventory SET qty = qty - 1 WHERE user_id = p_uid AND item_id = p_item AND qty > 1;
+  IF NOT FOUND THEN RAISE EXCEPTION 'no_item:%', p_item; END IF;
+END $$;
+
+CREATE OR REPLACE FUNCTION public.adv_xp_for(p_rarity text) RETURNS int
+LANGUAGE sql IMMUTABLE AS $$
+  SELECT CASE p_rarity WHEN 'comun' THEN 2 WHEN 'raro' THEN 6 WHEN 'epico' THEN 15 WHEN 'legendario' THEN 40 ELSE 100 END;
+$$;
+
+-- Sorteo ponderado sobre zones.loot = [{i, w, min, max}, ...].
+-- p_rare_mult multiplica el peso de los raros; p_epic_mult el de épicos, legendarios y míticos.
+CREATE OR REPLACE FUNCTION public.adv_roll_loot(p_loot jsonb, p_rare_mult numeric, p_epic_mult numeric)
+RETURNS jsonb LANGUAGE plpgsql VOLATILE SET search_path = public AS $$
+DECLARE
+  r record;
+  v_x double precision := public.secure_rand();
+BEGIN
+  WITH entries AS (
+    SELECT e->>'i' AS item, (e->>'w')::numeric AS w, (e->>'min')::int AS mn, (e->>'max')::int AS mx, it.rarity
+      FROM jsonb_array_elements(coalesce(p_loot, '[]'::jsonb)) e
+      JOIN public.items it ON it.id = e->>'i'
+  ), adj AS (
+    SELECT item, mn, mx,
+           w * CASE rarity WHEN 'comun' THEN 1 WHEN 'raro' THEN p_rare_mult ELSE p_epic_mult END AS wt
+      FROM entries
+  ), cum AS (
+    SELECT item, mn, mx, sum(wt) OVER (ORDER BY item) AS acc, sum(wt) OVER () AS tot FROM adj
+  )
+  SELECT item, mn, mx INTO r FROM cum WHERE acc >= v_x * tot ORDER BY acc LIMIT 1;
+
+  IF NOT FOUND THEN RETURN NULL; END IF;
+  RETURN jsonb_build_object('item', r.item, 'qty', r.mn + floor(public.secure_rand() * (r.mx - r.mn + 1))::int);
+END $$;
+
+-- ---------------------------------------------------------------------
+-- 3. MINERÍA: picar normal, 💥 dinamita y 🔦 antorcha
+--    dinamita: 3 sorteos de golpe + 15 % de geoda. Consume 1 dinamita.
+--    antorcha: x4 el peso de épicos/legendarios/míticos en esta acción. Consume 1 antorcha.
+--    poción activa (luck_until): duplica la cantidad de los minerales obtenidos.
+-- ---------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.adv_mine(p_zone text, p_dynamite boolean DEFAULT false, p_torch boolean DEFAULT false)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_st public.user_stats%ROWTYPE;
+  v_zone public.zones%ROWTYPE;
+  v_tool public.tools%ROWTYPE;
+  v_rolls int := 1;
+  v_loot jsonb := '[]'::jsonb;
+  v_roll jsonb;
+  v_item text; v_qty int; v_rar text; v_cat text;
+  v_xp bigint := 0;
+  v_event text := NULL;
+  v_bonus bigint := 0;
+  v_r double precision;
+  v_cd int; v_used bigint; v_double boolean; v_geode boolean := false; v_i int;
+BEGIN
+  IF v_uid IS NULL THEN RAISE EXCEPTION 'not_authenticated'; END IF;
+  PERFORM public.ensure_user_stats(v_uid);
+  SELECT * INTO v_st FROM public.user_stats WHERE user_id = v_uid FOR UPDATE;
+
+  SELECT * INTO v_zone FROM public.zones WHERE id = p_zone AND kind = 'mine';
+  IF NOT FOUND THEN RAISE EXCEPTION 'zone_not_found'; END IF;
+  IF v_st.level < v_zone.min_level THEN RAISE EXCEPTION 'level_too_low'; END IF;
+
+  SELECT t.* INTO v_tool FROM public.user_tools ut JOIN public.tools t ON t.id = ut.tool_id
+   WHERE ut.user_id = v_uid AND ut.equipped AND t.kind = 'pickaxe' LIMIT 1;
+  IF NOT FOUND THEN RAISE EXCEPTION 'no_pickaxe'; END IF;
+  IF v_tool.tier < v_zone.min_tier THEN RAISE EXCEPTION 'pickaxe_too_weak'; END IF;
+  IF v_st.mine_ready_at > clock_timestamp() THEN RAISE EXCEPTION 'cooldown'; END IF;
+
+  SELECT coalesce(sum(qty), 0) INTO v_used FROM public.inventory WHERE user_id = v_uid;
+  IF v_used >= 30 + 20 * v_st.backpack_level THEN RAISE EXCEPTION 'bag_full'; END IF;
+
+  IF p_dynamite THEN PERFORM public.adv_consume(v_uid, 'dinamita'); v_rolls := 3; END IF;
+  IF p_torch THEN PERFORM public.adv_consume(v_uid, 'antorcha'); END IF;
+
+  v_double := v_st.luck_until IS NOT NULL AND v_st.luck_until > clock_timestamp();
+
+  FOR v_i IN 1..v_rolls LOOP
+    v_roll := public.adv_roll_loot(
+      v_zone.loot,
+      v_tool.luck,
+      v_tool.luck * CASE WHEN p_torch THEN 4 ELSE 1 END
+    );
+    CONTINUE WHEN v_roll IS NULL;
+    v_item := v_roll->>'item';
+    SELECT rarity, category INTO v_rar, v_cat FROM public.items WHERE id = v_item;
+    v_qty := (v_roll->>'qty')::int * CASE WHEN v_double AND v_cat = 'mineral' THEN 2 ELSE 1 END;
+    PERFORM public.adv_give(v_uid, v_item, v_qty);
+    v_loot := v_loot || jsonb_build_array(jsonb_build_object('item', v_item, 'qty', v_qty));
+    v_xp := v_xp + public.adv_xp_for(v_rar);
+  END LOOP;
+
+  IF p_dynamite AND public.secure_rand() < 0.15 THEN
+    v_geode := true;
+    PERFORM public.adv_give(v_uid, 'geoda', 1);
+    v_loot := v_loot || jsonb_build_array(jsonb_build_object('item', 'geoda', 'qty', 1));
+    v_xp := v_xp + public.adv_xp_for('epico');
+  END IF;
+
+  v_r := public.secure_rand();
+  IF v_r < 0.04 THEN
+    v_event := 'cofre';
+    v_bonus := (50 + floor(public.secure_rand() * 150)::int) * v_tool.tier;
+    PERFORM public.economy_apply(v_uid, v_bonus, 'mine:chest', p_zone);
+  ELSIF v_r < 0.08 THEN
+    v_event := 'derrumbe';
+  END IF;
+
+  v_cd := v_tool.cooldown_s + CASE WHEN v_event = 'derrumbe' THEN 20 ELSE 0 END;
+
+  UPDATE public.user_stats SET
+    mine_ready_at = clock_timestamp() + make_interval(secs => v_cd),
+    stones_mined = stones_mined + v_rolls,
+    treasures_found = treasures_found + CASE WHEN v_event = 'cofre' THEN 1 ELSE 0 END,
+    xp = xp + v_xp,
+    lifetime_xp = lifetime_xp + v_xp,
+    updated_at = now()
+  WHERE user_id = v_uid;
+
+  RETURN jsonb_build_object(
+    'loot', v_loot, 'event', v_event, 'bonus', v_bonus, 'xp', v_xp,
+    'cooldown', v_cd, 'geode', v_geode, 'doubled', v_double
+  );
+END $$;
+
+-- 🧪 Poción de Suerte: +30 s de duplicado de minerales (se acumulan al beber varias)
+CREATE OR REPLACE FUNCTION public.adv_use_potion()
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE v_uid uuid := auth.uid(); v_until timestamptz;
+BEGIN
+  IF v_uid IS NULL THEN RAISE EXCEPTION 'not_authenticated'; END IF;
+  PERFORM public.ensure_user_stats(v_uid);
+  PERFORM 1 FROM public.user_stats WHERE user_id = v_uid FOR UPDATE;
+  PERFORM public.adv_consume(v_uid, 'pocion_suerte');
+  UPDATE public.user_stats
+     SET luck_until = greatest(coalesce(luck_until, clock_timestamp()), clock_timestamp()) + interval '30 seconds'
+   WHERE user_id = v_uid
+  RETURNING luck_until INTO v_until;
+  RETURN jsonb_build_object('ok', true, 'luck_until', v_until);
+END $$;
+
+-- ---------------------------------------------------------------------
+-- 4. PESCA CON TENSIÓN (3 pasos: lanzar -> picar -> pelear)
+--    El pez se decide al lanzar y se guarda en el servidor (el cliente solo ve la dificultad).
+--    El servidor valida los tiempos de picada y que la pelea dure lo que debe.
+--    LIMITACIÓN: la puntuación del minijuego de tensión la calcula el cliente; el servidor
+--    solo limita lo que puede ganar con ella (escapa si < 0.35, bonus si >= 0.85).
+-- ---------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.adv_fish_sessions (
+  user_id uuid PRIMARY KEY REFERENCES public.profiles(id) ON DELETE CASCADE,
+  zone_id text NOT NULL,
+  bait text NOT NULL,
+  item text NOT NULL,
+  qty int NOT NULL,
+  rarity text NOT NULL,
+  bite_at timestamptz NOT NULL,
+  window_ms int NOT NULL,
+  fight_ms int NOT NULL,
+  hooked_at timestamptz,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+ALTER TABLE public.adv_fish_sessions ENABLE ROW LEVEL SECURITY;  -- sin políticas: solo vía RPC
+REVOKE ALL ON public.adv_fish_sessions FROM authenticated, anon;
+
+CREATE OR REPLACE FUNCTION public.adv_fish_cast(p_zone text, p_bait text DEFAULT 'lombriz')
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  v_st public.user_stats%ROWTYPE;
+  v_zone public.zones%ROWTYPE;
+  v_rod public.tools%ROWTYPE;
+  v_roll jsonb; v_rar text; v_diff int;
+  v_rare numeric; v_epic numeric;
+  v_bite int; v_window int := 1500; v_fight int; v_used bigint;
+BEGIN
+  IF v_uid IS NULL THEN RAISE EXCEPTION 'not_authenticated'; END IF;
+  PERFORM public.ensure_user_stats(v_uid);
+  SELECT * INTO v_st FROM public.user_stats WHERE user_id = v_uid FOR UPDATE;
+
+  SELECT * INTO v_zone FROM public.zones WHERE id = p_zone AND kind = 'water';
+  IF NOT FOUND THEN RAISE EXCEPTION 'zone_not_found'; END IF;
+  IF v_st.level < v_zone.min_level THEN RAISE EXCEPTION 'level_too_low'; END IF;
+
+  SELECT t.* INTO v_rod FROM public.user_tools ut JOIN public.tools t ON t.id = ut.tool_id
+   WHERE ut.user_id = v_uid AND ut.equipped AND t.kind = 'rod' LIMIT 1;
+  IF NOT FOUND THEN RAISE EXCEPTION 'no_rod'; END IF;
+  IF v_rod.tier < v_zone.min_tier THEN RAISE EXCEPTION 'rod_too_weak'; END IF;
+  IF v_st.fish_ready_at > clock_timestamp() THEN RAISE EXCEPTION 'cooldown'; END IF;
+
+  SELECT coalesce(sum(qty), 0) INTO v_used FROM public.inventory WHERE user_id = v_uid;
+  IF v_used >= 30 + 20 * v_st.backpack_level THEN RAISE EXCEPTION 'bag_full'; END IF;
+
+  CASE p_bait
+    WHEN 'lombriz' THEN
+      v_rare := 1; v_epic := 1;
+    WHEN 'carnada_brillante' THEN
+      PERFORM public.adv_consume(v_uid, 'carnada_brillante'); v_rare := 2; v_epic := 2;
+    WHEN 'carnada_legendaria' THEN
+      PERFORM public.adv_consume(v_uid, 'carnada_legendaria'); v_rare := 3; v_epic := 5;
+    ELSE
+      RAISE EXCEPTION 'invalid_bait';
+  END CASE;
+
+  v_roll := public.adv_roll_loot(v_zone.loot, v_rare * v_rod.luck, v_epic * v_rod.luck);
+  IF v_roll IS NULL THEN RAISE EXCEPTION 'empty_zone'; END IF;
+  SELECT rarity INTO v_rar FROM public.items WHERE id = v_roll->>'item';
+
+  v_diff := CASE v_rar WHEN 'comun' THEN 1 WHEN 'raro' THEN 2 WHEN 'epico' THEN 3 WHEN 'legendario' THEN 4 ELSE 5 END;
+  v_fight := 2000 + v_diff * 900;
+  v_bite := greatest(1500, 2000 + floor(public.secure_rand() * 5000)::int - v_rod.tier * 200);
+
+  INSERT INTO public.adv_fish_sessions (user_id, zone_id, bait, item, qty, rarity, bite_at, window_ms, fight_ms, hooked_at, created_at)
+  VALUES (v_uid, p_zone, p_bait, v_roll->>'item', (v_roll->>'qty')::int, v_rar,
+          clock_timestamp() + make_interval(secs => v_bite / 1000.0), v_window, v_fight, NULL, now())
+  ON CONFLICT (user_id) DO UPDATE SET
+    zone_id = EXCLUDED.zone_id, bait = EXCLUDED.bait, item = EXCLUDED.item, qty = EXCLUDED.qty,
+    rarity = EXCLUDED.rarity, bite_at = EXCLUDED.bite_at, window_ms = EXCLUDED.window_ms,
+    fight_ms = EXCLUDED.fight_ms, hooked_at = NULL, created_at = now();
+
+  -- Bloqueo provisional hasta que termine la pesca (se reemplaza por el cooldown real al resolver)
+  UPDATE public.user_stats
+     SET fish_ready_at = clock_timestamp() + make_interval(secs => (v_bite + v_window + v_fight) / 1000.0 + 10)
+   WHERE user_id = v_uid;
+
+  RETURN jsonb_build_object('bite_in_ms', v_bite, 'window_ms', v_window, 'fight_ms', v_fight,
+                            'difficulty', v_diff, 'bait', p_bait);
+END $$;
+
+CREATE OR REPLACE FUNCTION public.adv_fish_hook()
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  s public.adv_fish_sessions%ROWTYPE;
+  v_now timestamptz := clock_timestamp();
+BEGIN
+  IF v_uid IS NULL THEN RAISE EXCEPTION 'not_authenticated'; END IF;
+  SELECT * INTO s FROM public.adv_fish_sessions WHERE user_id = v_uid FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'no_session'; END IF;
+  IF s.hooked_at IS NOT NULL THEN RAISE EXCEPTION 'already_hooked'; END IF;
+
+  IF v_now < s.bite_at - interval '150 milliseconds' THEN
+    DELETE FROM public.adv_fish_sessions WHERE user_id = v_uid;
+    UPDATE public.user_stats SET fish_ready_at = clock_timestamp() + interval '8 seconds' WHERE user_id = v_uid;
+    RETURN jsonb_build_object('ok', false, 'reason', 'early');
+  END IF;
+
+  IF v_now > s.bite_at + make_interval(secs => (s.window_ms / 1000.0 + 0.4)::double precision) THEN
+    DELETE FROM public.adv_fish_sessions WHERE user_id = v_uid;
+    UPDATE public.user_stats SET fish_ready_at = clock_timestamp() + interval '8 seconds' WHERE user_id = v_uid;
+    RETURN jsonb_build_object('ok', false, 'reason', 'late');
+  END IF;
+
+  UPDATE public.adv_fish_sessions SET hooked_at = v_now WHERE user_id = v_uid;
+  RETURN jsonb_build_object('ok', true, 'fight_ms', s.fight_ms);
+END $$;
+
+CREATE OR REPLACE FUNCTION public.adv_fish_reel(p_score numeric)
+RETURNS jsonb LANGUAGE plpgsql SECURITY DEFINER SET search_path = public AS $$
+DECLARE
+  v_uid uuid := auth.uid();
+  s public.adv_fish_sessions%ROWTYPE;
+  v_rod public.tools%ROWTYPE;
+  v_cd int := 25;
+  v_perfect boolean; v_qty int; v_xp bigint;
+BEGIN
+  IF v_uid IS NULL THEN RAISE EXCEPTION 'not_authenticated'; END IF;
+  IF p_score IS NULL OR p_score < 0 OR p_score > 1 THEN RAISE EXCEPTION 'invalid_score'; END IF;
+
+  SELECT * INTO s FROM public.adv_fish_sessions WHERE user_id = v_uid FOR UPDATE;
+  IF NOT FOUND THEN RAISE EXCEPTION 'no_session'; END IF;
+  IF s.hooked_at IS NULL THEN RAISE EXCEPTION 'not_hooked'; END IF;
+  IF clock_timestamp() < s.hooked_at + make_interval(secs => (s.fight_ms * 0.85 / 1000.0)::double precision) THEN
+    RAISE EXCEPTION 'too_soon';
+  END IF;
+
+  SELECT t.* INTO v_rod FROM public.user_tools ut JOIN public.tools t ON t.id = ut.tool_id
+   WHERE ut.user_id = v_uid AND ut.equipped AND t.kind = 'rod' LIMIT 1;
+  IF FOUND THEN v_cd := v_rod.cooldown_s; END IF;
+
+  DELETE FROM public.adv_fish_sessions WHERE user_id = v_uid;
+
+  IF p_score < 0.35 THEN
+    UPDATE public.user_stats SET fish_ready_at = clock_timestamp() + make_interval(secs => v_cd / 2.0)
+     WHERE user_id = v_uid;
+    RETURN jsonb_build_object('ok', false, 'reason', 'escaped');
+  END IF;
+
+  v_perfect := p_score >= 0.85;
+  v_qty := s.qty + CASE WHEN v_perfect AND s.rarity IN ('comun', 'raro') THEN 1 ELSE 0 END;
+  v_xp := floor(public.adv_xp_for(s.rarity) * CASE WHEN v_perfect THEN 1.5 ELSE 1 END)::bigint;
+
+  PERFORM public.adv_give(v_uid, s.item, v_qty);
+  UPDATE public.user_stats SET
+    fish_caught = fish_caught + 1,
+    xp = xp + v_xp,
+    lifetime_xp = lifetime_xp + v_xp,
+    fish_ready_at = clock_timestamp() + make_interval(secs => v_cd),
+    updated_at = now()
+  WHERE user_id = v_uid;
+
+  RETURN jsonb_build_object('ok', true, 'item', s.item, 'qty', v_qty, 'xp', v_xp,
+                            'perfect', v_perfect, 'rarity', s.rarity);
+END $$;
+
+-- ---------------------------------------------------------------------
+-- 5. PERMISOS
+-- ---------------------------------------------------------------------
+REVOKE ALL ON FUNCTION public.adv_give(uuid, text, int) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.adv_consume(uuid, text) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.adv_roll_loot(jsonb, numeric, numeric) FROM PUBLIC, anon, authenticated;
+REVOKE ALL ON FUNCTION public.user_stats_sync() FROM PUBLIC, anon, authenticated;
+
+REVOKE ALL ON FUNCTION public.adv_mine(text, boolean, boolean) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.adv_use_potion() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.adv_fish_cast(text, text) FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.adv_fish_hook() FROM PUBLIC, anon;
+REVOKE ALL ON FUNCTION public.adv_fish_reel(numeric) FROM PUBLIC, anon;
+GRANT EXECUTE ON FUNCTION public.adv_mine(text, boolean, boolean) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.adv_use_potion() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.adv_fish_cast(text, text) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.adv_fish_hook() TO authenticated;
+GRANT EXECUTE ON FUNCTION public.adv_fish_reel(numeric) TO authenticated;

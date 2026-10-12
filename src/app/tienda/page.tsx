@@ -128,8 +128,8 @@ const FILTERS: { id: Filter; label: string }[] = [
 ]
 
 function levelProgress(xp: number, level: number) {
-  const start = 100 * (level - 1) ** 2
-  const end = 100 * level ** 2
+  const start = 25 * (level - 1) ** 2
+  const end = 25 * level ** 2
   const pct = ((xp - start) / (end - start)) * 100
   return { pct: Math.min(100, Math.max(0, pct)), start, end }
 }

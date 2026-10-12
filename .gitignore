@@ -42,6 +42,8 @@ next-env.d.ts
 
 # raw archives and unplaced dumps
 files/
+files2/
+filesnuevos/
 *.zip
 
 discord-bot/node_modules
