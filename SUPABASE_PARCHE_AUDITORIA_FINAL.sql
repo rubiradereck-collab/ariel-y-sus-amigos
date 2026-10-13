@@ -118,6 +118,14 @@ REVOKE EXECUTE ON FUNCTION public._secure_int(int) FROM PUBLIC, anon, authentica
 -- Índice único: Máximo 1 partida activa por usuario (evita carreras en bj_start)
 CREATE UNIQUE INDEX IF NOT EXISTS bj_one_active ON public.bj_games (user_id) WHERE status = 'playing';
 
+-- Revocar acceso directo a la tabla bj_games para que nadie pueda espiar el mazo
+DO $$
+BEGIN
+  IF EXISTS (SELECT FROM pg_tables WHERE schemaname = 'public' AND tablename = 'bj_games') THEN
+    REVOKE ALL ON public.bj_games FROM anon, authenticated;
+  END IF;
+END $$;
+
 -- Helpers de Blackjack honestamente marcados como STABLE (no immutable)
 CREATE OR REPLACE FUNCTION public._bj_total(h int[]) 
 RETURNS int
